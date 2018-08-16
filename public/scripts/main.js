@@ -15,10 +15,23 @@
  */
 'use strict';
 
+
 function signIn() {
   // Sign in Firebase using popup auth and Google as the identity provider.
   var provider = new firebase.auth.GoogleAuthProvider();
   firebase.auth().signInWithPopup(provider);
+
+  // if(firebase.auth().currentUser){
+  //   firebase.database().ref("users/" + firebase.auth().currentUser.uid).set({
+  //     name: firebase.auth().currentUser.displayName,
+  //     email: firebase.auth().currentUser.email, 
+  //     profilePic: firebase.auth().currentUser.photoURL,
+  //     uid: firebase.auth().currentUser.uid
+  //   });
+  // }  
+  // var users = firebase.database().ref("/users").once();
+  // console.log(users);
+  
 }
 
 function signOut() {
@@ -318,4 +331,3 @@ mediaCaptureElement.addEventListener('change', onMediaFileSelected);
 initFirebaseAuth();
 
 // We load currently existing chat messages and listen to new ones.
-

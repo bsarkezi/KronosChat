@@ -36,9 +36,14 @@
     <!-- App Styling -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:regular,bold,italic,thin,light,bolditalic,black,medium&amp;lang=en">
     <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/style.css">
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="images/message.ico"/>
+    <link rel="icon" type="image/png" href="images/message.ico" />
+
+    <!-- JQuery -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
 </head>
 
 
@@ -68,30 +73,79 @@
 
         <main class="mdl-layout__content mdl-color--grey-100">
             <div id="messages-card-container" class="mdl-cell mdl-cell--12-col mdl-grid">
+                <section>
 
-                <!-- Messages container -->
-                <div id="messages-card" class="mdl-card mdl-shadow--2dp mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--6-col-desktop">
-                    <div class="mdl-card__supporting-text mdl-color-text--grey-600">
-                        <div id="messages">
-                            <span id="message-filler"></span>
-                        </div>
-                        <form id="message-form" action="#">
-                            <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-                                <input class="mdl-textfield__input" type="text" id="message">
-                                <label class="mdl-textfield__label" for="message">Message...</label>
+                    <!-- TODO: UREDITI DA KONTAKTI BUDU SKROLABILNI, UREDITI LAYOUT/POLOZAJ -->
+
+                    <!-- Contacts container -->
+                    <div id="contacts-card" class="mdl-card mdl-shadow--2dp mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--12-col-desktop">
+
+
+                        <div class="mdl-card__supporting-text mdl-color-text--grey-600" id="contacts">
+                            <form action="#">
+                                <div class="mdl-textfield mdl-js-textfield">
+                                    <input class="mdl-textfield__input" type="text" id="sample1">
+                                    <label class="mdl-textfield__label" for="sample1">Text...</label>
+                                </div>
+                            </form>
+                            <div class="contact">
+                                <p>
+                                    <b>Ime Prezime</b>
+                                </p>
+                                <p>Lorem ipsum dolor sit amet</p>
                             </div>
-                            <button id="submit" disabled type="submit" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect">
-                                Send
-                            </button>
-                        </form>
-                        <form id="image-form" action="#">
-                            <input id="mediaCapture" type="file" accept="image/*" capture="camera">
-                            <button id="submitImage" title="Add an image" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-color--amber-400 mdl-color-text--white">
-                                <i class="material-icons">image</i>
-                            </button>
-                        </form>
+
+                            <div class="contact">
+                                <p>
+                                    <b>Ime Prezime2</b>
+                                </p>
+                                <p>Lorem ipsum dolor sit amet</p>
+                            </div>
+
+                            <div class="contact">
+                                <p>
+                                    <b>Ime Prezime3</b>
+                                </p>
+                                <p>Lorem ipsum dolor sit amet</p>
+                            </div>
+                        </div>
+
+
+
                     </div>
-                </div>
+                </section>
+
+                <section class="">
+                    <!-- Messages container -->
+                    <div id="messages-card" class="mdl-card mdl-shadow--2dp mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--12-col-desktop">
+                            <div>
+                                <p id="contact-name" class="mdl-navigation-link">Test 12</p>    
+                            </div>
+                        
+                        <div class="mdl-card__supporting-text mdl-color-text--grey-600">
+                            
+                            <div id="messages">
+                                <span id="message-filler"></span>
+                            </div>
+                            <form id="message-form" action="#">
+                                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                                    <input class="mdl-textfield__input" type="text" id="message">
+                                    <label class="mdl-textfield__label" for="message">Message...</label>
+                                </div>
+                                <button id="submit" disabled type="submit" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect">
+                                    Send
+                                </button>
+                            </form>
+                            <form id="image-form" action="#">
+                                <input id="mediaCapture" type="file" accept="image/*" capture="camera">
+                                <button id="submitImage" title="Add an image" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-color--amber-400 mdl-color-text--white">
+                                    <i class="material-icons">image</i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+
 
                 <div id="must-signin-snackbar" class="mdl-js-snackbar mdl-snackbar">
                     <div class="mdl-snackbar__text"></div>
@@ -129,7 +183,8 @@
     </script>
 
 
-    <script src="../scripts/main.js"></script>
+    <script src="scripts/main.js"></script>
+    <script src="scripts/chatFunc.js"></script>
 
 </body>
 
