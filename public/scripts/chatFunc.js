@@ -16,6 +16,7 @@ function snapshotToArray(snapshot) {
 };
 
 function initUserList(){
+
     firebase.database().ref("users/").once("value").then(function(snapshot){
         var usersArray = snapshotToArray(snapshot);        
         var userDetail;
@@ -32,6 +33,20 @@ function initUserList(){
         });
     })
 }
+
+function loadMessages(){
+
+}
+
+function saveMessage(){
+
+}
+
+// function onMessageFormSubmit(event){
+//     event.preventDefault();
+//     toggleButton();
+//     alert(messageInputElement.value);
+// }
 
 window.onload=function(){
     initUserList();

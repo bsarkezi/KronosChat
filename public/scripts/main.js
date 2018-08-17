@@ -28,7 +28,7 @@ function signIn() {
   //     profilePic: firebase.auth().currentUser.photoURL,
   //     uid: firebase.auth().currentUser.uid
   //   });
-  // }  
+  //}  
   // var users = firebase.database().ref("/users").once();
   // console.log(users);
   
@@ -178,6 +178,15 @@ function onMessageFormSubmit(e) {
 // Triggers when the auth state change for instance when the user signs-in or signs-out.
 function authStateObserver(user) {
   if (user) { // User is signed in!
+
+    //B.Š. - Add user to users table in DB, no duplicates
+    firebase.database().ref("users/" + firebase.auth().currentUser.uid).set({
+      name: firebase.auth().currentUser.displayName,
+      email: firebase.auth().currentUser.email, 
+      profilePic: firebase.auth().currentUser.photoURL,
+      uid: firebase.auth().currentUser.uid
+    });
+
     // Get the signed-in user's profile pic and name.
     var profilePicUrl = getProfilePicUrl();
     var userName = getUserName();
@@ -331,3 +340,90 @@ mediaCaptureElement.addEventListener('change', onMediaFileSelected);
 initFirebaseAuth();
 
 // We load currently existing chat messages and listen to new ones.
+
+
+
+
+//---------------------------------------------------------------------------------------------------
+
+/*
+
+TODO: napraviti da sve radi iz zasebnog filea, chatFunc.js
+
+*/
+
+function snapshotToArray(snapshot) {
+  var returnArr = [];
+
+  snapshot.forEach(function(childSnapshot) {
+      var item = childSnapshot.val();
+      item.key = childSnapshot.key;
+
+      returnArr.push(item);
+  });
+
+  return returnArr;
+};
+
+function initUserList(){
+
+  firebase.database().ref("users/").once("value").then(function(snapshot){
+      var usersArray = snapshotToArray(snapshot);        
+      var userDetail;
+      for(var i = 0; i<usersArray.length;i++){
+          userDetail= usersArray[i].email;
+          // var contactsToAdd = "<p><b>"+userDetail.substring(0, userDetail.indexOf("@"))+"</b></p><p>Lorem ipsum dolor sit amet</p>";
+          var contactsToAdd = "<p><b>"+usersArray[i].email+"</b></p><p>Lorem ipsum dolor sit amet</p>";
+          var aa = document.createElement("div");
+          aa.className="contact"
+          aa.innerHTML=contactsToAdd;
+          document.getElementById("contacts").appendChild(aa);
+      }
+      $(".contact").click(function(){
+          $("#contact-name").removeAttr("hidden");
+          $("#contact-name").text($(this).find("p:first").text());
+      });
+      
+  })
+}
+
+// Loads chat messages history and listens for upcoming ones.
+function loadMessages() {
+  // Loads the last 12 messages and listen for new ones.
+  var callback = function(snap) {
+    var data = snap.val();
+    console.log(data);
+    displayMessage(snap.key, data.name, data.text, data.profilePicUrl, data.imageUrl);
+  };
+
+  firebase.database().ref('/messages/').limitToLast(12).on('child_added', callback);
+  firebase.database().ref('/messages/').limitToLast(12).on('child_changed', callback);
+}
+
+function saveMessage(msgText){
+  return firebase.database().ref("chats").push({
+    participants:[firebase.auth().currentUser.email, $("#contact-name").text()],
+    latestMessage: + new Date(),
+    message:msgText
+  });
+}
+
+// function onMessageFormSubmit(event){
+//   event.preventDefault();
+//   if(messageInputElement.value&&)
+//   toggleButton();
+//   //alert(messageInputElement.value);
+// }
+
+window.onload=function(){
+  initUserList();
+
+};
+
+
+
+// function onMessageFormSubmit(event){
+//   event.preventDefault();
+//   toggleButton();
+//   alert(messageInputElement.value);
+// }
