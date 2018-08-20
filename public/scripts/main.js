@@ -180,12 +180,12 @@ function authStateObserver(user) {
   if (user) { // User is signed in!
 
     //B.Š. - Add user to users table in DB, no duplicates
-    firebase.database().ref("users/" + firebase.auth().currentUser.uid).set({
-      name: firebase.auth().currentUser.displayName,
-      email: firebase.auth().currentUser.email, 
-      profilePic: firebase.auth().currentUser.photoURL,
-      uid: firebase.auth().currentUser.uid
-    });
+    // firebase.database().ref("users/" + firebase.auth().currentUser.uid).set({
+    //   name: firebase.auth().currentUser.displayName,
+    //   email: firebase.auth().currentUser.email, 
+    //   profilePic: firebase.auth().currentUser.photoURL,
+    //   uid: firebase.auth().currentUser.uid
+    // });
 
     // Get the signed-in user's profile pic and name.
     var profilePicUrl = getProfilePicUrl();
@@ -369,9 +369,9 @@ function initUserList(){
 
   firebase.database().ref("users/").once("value").then(function(snapshot){
       var usersArray = snapshotToArray(snapshot);        
-      var userDetail;
+      //var userDetail;
       for(var i = 0; i<usersArray.length;i++){
-          userDetail= usersArray[i].email;
+          //userDetail= usersArray[i].email;
           // var contactsToAdd = "<p><b>"+userDetail.substring(0, userDetail.indexOf("@"))+"</b></p><p>Lorem ipsum dolor sit amet</p>";
           var contactsToAdd = "<p><b>"+usersArray[i].email+"</b></p><p>Lorem ipsum dolor sit amet</p>";
           var aa = document.createElement("div");
@@ -382,6 +382,7 @@ function initUserList(){
       $(".contact").click(function(){
           $("#contact-name").removeAttr("hidden");
           $("#contact-name").text($(this).find("p:first").text());
+
       });
       
   })
@@ -401,7 +402,41 @@ function loadMessages() {
 }
 
 function saveMessage(msgText){
-  return firebase.database().ref("chats").push({
+
+  if($("#contact-name").text()==""){
+    var data = {
+      message: "Please select a contact first",
+      timeout:2000
+    }
+    signInSnackbarElement.MaterialSnackbar.showSnackbar(data);
+    return;
+  }
+
+  else{
+    var partnerUid;
+    firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("child_added",function(snapshot){
+      partnerUid = snapshot.val().uid;
+    });
+    firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).off("child_added",function(){
+      return
+    });
+
+    return firebase.database().ref("chats/"+firebase.auth().currentUser.uid+"_"+partnerUid).set({
+      participants:[firebase.auth().currentUser.email, $("#contact-name").text()],
+      latestMessage: + new Date(),
+      message:msgText
+    });
+  }
+
+  var partnerUid;
+  firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("child_added",function(snapshot){
+    partnerUid = snapshot.val().uid;
+  });
+  firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).off("child_added",function(){
+    return;
+  });
+
+  return firebase.database().ref("chats/"+firebase.auth().currentUser.uid+"_"+partnerUid).set({
     participants:[firebase.auth().currentUser.email, $("#contact-name").text()],
     latestMessage: + new Date(),
     message:msgText
@@ -426,4 +461,9 @@ window.onload=function(){
 //   event.preventDefault();
 //   toggleButton();
 //   alert(messageInputElement.value);
+// }
+
+// function getMessages(){
+//   var ref = firebase.database().ref("chats");
+//   ref.
 // }

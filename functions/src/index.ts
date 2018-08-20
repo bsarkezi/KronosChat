@@ -12,7 +12,7 @@ import * as admin from 'firebase-admin';
 // });
 
 export const addUser = functions.auth.user().onCreate((user) =>{
-    admin.database().ref("users"+user.uid).set({
+    admin.database().ref("users/"+user.uid).set({
         email:user.email,
         name:user.displayName,
         profilePic: user.photoURL,
