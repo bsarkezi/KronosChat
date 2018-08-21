@@ -17,47 +17,47 @@
 
 
 function signIn() {
-  // Sign in Firebase using popup auth and Google as the identity provider.
-  var provider = new firebase.auth.GoogleAuthProvider();
-  firebase.auth().signInWithPopup(provider);
+    // Sign in Firebase using popup auth and Google as the identity provider.
+    var provider = new firebase.auth.GoogleAuthProvider();
+    firebase.auth().signInWithPopup(provider);
 
-  // if(firebase.auth().currentUser){
-  //   firebase.database().ref("users/" + firebase.auth().currentUser.uid).set({
-  //     name: firebase.auth().currentUser.displayName,
-  //     email: firebase.auth().currentUser.email, 
-  //     profilePic: firebase.auth().currentUser.photoURL,
-  //     uid: firebase.auth().currentUser.uid
-  //   });
-  //}  
-  // var users = firebase.database().ref("/users").once();
-  // console.log(users);
-  
+    // if(firebase.auth().currentUser){
+    //   firebase.database().ref("users/" + firebase.auth().currentUser.uid).set({
+    //     name: firebase.auth().currentUser.displayName,
+    //     email: firebase.auth().currentUser.email, 
+    //     profilePic: firebase.auth().currentUser.photoURL,
+    //     uid: firebase.auth().currentUser.uid
+    //   });
+    //}  
+    // var users = firebase.database().ref("/users").once();
+    // console.log(users);
+
 }
 
 function signOut() {
-  // Sign out of Firebase.
-  firebase.auth().signOut();
+    // Sign out of Firebase.
+    firebase.auth().signOut();
 }
 
 // Initiate firebase auth.
 function initFirebaseAuth() {
-  // Listen to auth state changes.
-  firebase.auth().onAuthStateChanged(authStateObserver);
+    // Listen to auth state changes.
+    firebase.auth().onAuthStateChanged(authStateObserver);
 }
 
 // Returns the signed-in user's profile Pic URL.
 function getProfilePicUrl() {
-  return firebase.auth().currentUser.photoURL || '/images/profile_placeholder.png';
+    return firebase.auth().currentUser.photoURL || '/images/profile_placeholder.png';
 }
 
 // Returns the signed-in user's display name.
 function getUserName() {
-  return firebase.auth().currentUser.displayName;
+    return firebase.auth().currentUser.displayName;
 }
 
 // Returns true if a user is signed-in.
 function isUserSignedIn() {
-  return !!firebase.auth().currentUser;
+    return !!firebase.auth().currentUser;
 }
 
 // // Loads chat messages history and listens for upcoming ones.
@@ -113,137 +113,138 @@ function isUserSignedIn() {
 
 // Saves the messaging device token to the datastore.
 function saveMessagingDeviceToken() {
-  firebase.messaging().getToken().then(function(currentToken) {
-    if (currentToken) {
-      console.log('Got FCM device token:', currentToken);
-      // Saving the Device Token to the datastore.
-      firebase.database().ref('/fcmTokens').child(currentToken)
-          .set(firebase.auth().currentUser.uid);
-    } else {
-      // Need to request permissions to show notifications.
-      requestNotificationsPermissions();
-    }
-  }).catch(function(error){
-    console.error('Unable to get messaging token.', error);
-  });
+    firebase.messaging().getToken().then(function(currentToken) {
+        if (currentToken) {
+            console.log('Got FCM device token:', currentToken);
+            // Saving the Device Token to the datastore.
+            firebase.database().ref('/fcmTokens').child(currentToken)
+                .set(firebase.auth().currentUser.uid);
+        } else {
+            // Need to request permissions to show notifications.
+            requestNotificationsPermissions();
+        }
+    }).catch(function(error) {
+        console.error('Unable to get messaging token.', error);
+    });
 }
 
 // Requests permissions to show notifications.
 function requestNotificationsPermissions() {
-  console.log('Requesting notifications permission...');
-  firebase.messaging().requestPermission().then(function() {
-    // Notification permission granted.
-    saveMessagingDeviceToken();
-  }).catch(function(error) {
-    console.error('Unable to get permission to notify.', error);
-  });
+    console.log('Requesting notifications permission...');
+    firebase.messaging().requestPermission().then(function() {
+        // Notification permission granted.
+        saveMessagingDeviceToken();
+    }).catch(function(error) {
+        console.error('Unable to get permission to notify.', error);
+    });
 }
 
 // Triggered when a file is selected via the media picker.
 function onMediaFileSelected(event) {
-  event.preventDefault();
-  var file = event.target.files[0];
+    event.preventDefault();
+    var file = event.target.files[0];
 
-  // Clear the selection in the file picker input.
-  imageFormElement.reset();
+    // Clear the selection in the file picker input.
+    imageFormElement.reset();
 
-  // Check if the file is an image.
-  if (!file.type.match('image.*')) {
-    var data = {
-      message: 'You can only share images',
-      timeout: 2000
-    };
-    signInSnackbarElement.MaterialSnackbar.showSnackbar(data);
-    return;
-  }
-  // Check if the user is signed-in
-  if (checkSignedInWithMessage()) {
-    saveImageMessage(file);
-  }
+    // Check if the file is an image.
+    if (!file.type.match('image.*')) {
+        var data = {
+            message: 'You can only share images',
+            timeout: 2000
+        };
+        signInSnackbarElement.MaterialSnackbar.showSnackbar(data);
+        return;
+    }
+    // Check if the user is signed-in
+    if (checkSignedInWithMessage()) {
+        saveImageMessage(file);
+    }
 }
 
 // Triggered when the send new message form is submitted.
 function onMessageFormSubmit(e) {
-  e.preventDefault();
-  // Check that the user entered a message and is signed in.
-  if (messageInputElement.value && checkSignedInWithMessage()) {
-    saveMessage(messageInputElement.value).then(function() {
-      // Clear message text field and re-enable the SEND button.
-      resetMaterialTextfield(messageInputElement);
-      toggleButton();
-    });
-  }
+    e.preventDefault();
+    // Check that the user entered a message and is signed in.
+    if (messageInputElement.value && checkSignedInWithMessage()) {
+        saveMessage(messageInputElement.value);
+        // saveMessage(messageInputElement.value).then(function() {
+        //   // Clear message text field and re-enable the SEND button.
+        //   resetMaterialTextfield(messageInputElement);
+        //   toggleButton();
+        // });
+    }
 }
 
 // Triggers when the auth state change for instance when the user signs-in or signs-out.
 function authStateObserver(user) {
-  if (user) { // User is signed in!
+    if (user) { // User is signed in!
 
-    //B.Š. - Add user to users table in DB, no duplicates
-    // firebase.database().ref("users/" + firebase.auth().currentUser.uid).set({
-    //   name: firebase.auth().currentUser.displayName,
-    //   email: firebase.auth().currentUser.email, 
-    //   profilePic: firebase.auth().currentUser.photoURL,
-    //   uid: firebase.auth().currentUser.uid
-    // });
+        //B.Š. - Add user to users table in DB, no duplicates
+        // firebase.database().ref("users/" + firebase.auth().currentUser.uid).set({
+        //   name: firebase.auth().currentUser.displayName,
+        //   email: firebase.auth().currentUser.email, 
+        //   profilePic: firebase.auth().currentUser.photoURL,
+        //   uid: firebase.auth().currentUser.uid
+        // });
 
-    // Get the signed-in user's profile pic and name.
-    var profilePicUrl = getProfilePicUrl();
-    var userName = getUserName();
+        // Get the signed-in user's profile pic and name.
+        var profilePicUrl = getProfilePicUrl();
+        var userName = getUserName();
 
-    // Set the user's profile pic and name.
-    userPicElement.style.backgroundImage = 'url(' + profilePicUrl + ')';
-    userNameElement.textContent = userName;
+        // Set the user's profile pic and name.
+        userPicElement.style.backgroundImage = 'url(' + profilePicUrl + ')';
+        userNameElement.textContent = userName;
 
-    // Show user's profile and sign-out button.
-    userNameElement.removeAttribute('hidden');
-    userPicElement.removeAttribute('hidden');
-    signOutButtonElement.removeAttribute('hidden');
+        // Show user's profile and sign-out button.
+        userNameElement.removeAttribute('hidden');
+        userPicElement.removeAttribute('hidden');
+        signOutButtonElement.removeAttribute('hidden');
 
-    // Hide sign-in button.
-    signInButtonElement.setAttribute('hidden', 'true');
+        // Hide sign-in button.
+        signInButtonElement.setAttribute('hidden', 'true');
 
-    // We save the Firebase Messaging Device token and enable notifications.
-    saveMessagingDeviceToken();
-  } else { // User is signed out!
-    // Hide user's profile and sign-out button.
-    userNameElement.setAttribute('hidden', 'true');
-    userPicElement.setAttribute('hidden', 'true');
-    signOutButtonElement.setAttribute('hidden', 'true');
+        // We save the Firebase Messaging Device token and enable notifications.
+        saveMessagingDeviceToken();
+    } else { // User is signed out!
+        // Hide user's profile and sign-out button.
+        userNameElement.setAttribute('hidden', 'true');
+        userPicElement.setAttribute('hidden', 'true');
+        signOutButtonElement.setAttribute('hidden', 'true');
 
-    // Show sign-in button.
-    signInButtonElement.removeAttribute('hidden');
-  }
+        // Show sign-in button.
+        signInButtonElement.removeAttribute('hidden');
+    }
 }
 
 // Returns true if user is signed-in. Otherwise false and displays a message.
 function checkSignedInWithMessage() {
-  // Return true if the user is signed in Firebase
-  if (isUserSignedIn()) {
-    return true;
-  }
+    // Return true if the user is signed in Firebase
+    if (isUserSignedIn()) {
+        return true;
+    }
 
-  // Display a message to the user using a Toast.
-  var data = {
-    message: 'You must sign-in first',
-    timeout: 2000
-  };
-  signInSnackbarElement.MaterialSnackbar.showSnackbar(data);
-  return false;
+    // Display a message to the user using a Toast.
+    var data = {
+        message: 'You must sign-in first',
+        timeout: 2000
+    };
+    signInSnackbarElement.MaterialSnackbar.showSnackbar(data);
+    return false;
 }
 
 // Resets the given MaterialTextField.
 function resetMaterialTextfield(element) {
-  element.value = '';
-  element.parentNode.MaterialTextfield.boundUpdateClassesHandler();
+    element.value = '';
+    element.parentNode.MaterialTextfield.boundUpdateClassesHandler();
 }
 
 // Template for messages.
 var MESSAGE_TEMPLATE =
     '<div class="message-container">' +
-      '<div class="spacing"><div class="pic"></div></div>' +
-      '<div class="message"></div>' +
-      '<div class="name"></div>' +
+    '<div class="spacing"><div class="pic"></div></div>' +
+    '<div class="message"></div>' +
+    '<div class="name"></div>' +
     '</div>';
 
 // A loading image URL.
@@ -251,56 +252,56 @@ var LOADING_IMAGE_URL = 'https://www.google.com/images/spin-32.gif?a';
 
 // Displays a Message in the UI.
 function displayMessage(key, name, text, picUrl, imageUrl) {
-  var div = document.getElementById(key);
-  // If an element for that message does not exists yet we create it.
-  if (!div) {
-    var container = document.createElement('div');
-    container.innerHTML = MESSAGE_TEMPLATE;
-    div = container.firstChild;
-    div.setAttribute('id', key);
-    messageListElement.appendChild(div);
-  }
-  if (picUrl) {
-    div.querySelector('.pic').style.backgroundImage = 'url(' + picUrl + ')';
-  }
-  div.querySelector('.name').textContent = name;
-  var messageElement = div.querySelector('.message');
-  if (text) { // If the message is text.
-    messageElement.textContent = text;
-    // Replace all line breaks by <br>.
-    messageElement.innerHTML = messageElement.innerHTML.replace(/\n/g, '<br>');
-  } else if (imageUrl) { // If the message is an image.
-    var image = document.createElement('img');
-    image.addEventListener('load', function() {
-      messageListElement.scrollTop = messageListElement.scrollHeight;
-    });
-    image.src = imageUrl + '&' + new Date().getTime();
-    messageElement.innerHTML = '';
-    messageElement.appendChild(image);
-  }
-  // Show the card fading-in and scroll to view the new message.
-  setTimeout(function() {div.classList.add('visible')}, 1);
-  messageListElement.scrollTop = messageListElement.scrollHeight;
-  messageInputElement.focus();
+    var div = document.getElementById(key);
+    // If an element for that message does not exists yet we create it.
+    if (!div) {
+        var container = document.createElement('div');
+        container.innerHTML = MESSAGE_TEMPLATE;
+        div = container.firstChild;
+        div.setAttribute('id', key);
+        messageListElement.appendChild(div);
+    }
+    if (picUrl) {
+        div.querySelector('.pic').style.backgroundImage = 'url(' + picUrl + ')';
+    }
+    div.querySelector('.name').textContent = name;
+    var messageElement = div.querySelector('.message');
+    if (text) { // If the message is text.
+        messageElement.textContent = text;
+        // Replace all line breaks by <br>.
+        messageElement.innerHTML = messageElement.innerHTML.replace(/\n/g, '<br>');
+    } else if (imageUrl) { // If the message is an image.
+        var image = document.createElement('img');
+        image.addEventListener('load', function() {
+            messageListElement.scrollTop = messageListElement.scrollHeight;
+        });
+        image.src = imageUrl + '&' + new Date().getTime();
+        messageElement.innerHTML = '';
+        messageElement.appendChild(image);
+    }
+    // Show the card fading-in and scroll to view the new message.
+    setTimeout(function() { div.classList.add('visible') }, 1);
+    messageListElement.scrollTop = messageListElement.scrollHeight;
+    messageInputElement.focus();
 }
 
 // Enables or disables the submit button depending on the values of the input
 // fields.
 function toggleButton() {
-  if (messageInputElement.value) {
-    submitButtonElement.removeAttribute('disabled');
-  } else {
-    submitButtonElement.setAttribute('disabled', 'true');
-  }
+    if (messageInputElement.value) {
+        submitButtonElement.removeAttribute('disabled');
+    } else {
+        submitButtonElement.setAttribute('disabled', 'true');
+    }
 }
 
 // Checks that the Firebase SDK has been correctly setup and configured.
 function checkSetup() {
-  if (!window.firebase || !(firebase.app instanceof Function) || !firebase.app().options) {
-    window.alert('You have not configured and imported the Firebase SDK. ' +
-        'Make sure you go through the codelab setup instructions and make ' +
-        'sure you are running the codelab using `firebase serve`');
-  }
+    if (!window.firebase || !(firebase.app instanceof Function) || !firebase.app().options) {
+        window.alert('You have not configured and imported the Firebase SDK. ' +
+            'Make sure you go through the codelab setup instructions and make ' +
+            'sure you are running the codelab using `firebase serve`');
+    }
 }
 
 // Checks that Firebase has been imported.
@@ -331,8 +332,8 @@ messageInputElement.addEventListener('change', toggleButton);
 
 // Events for image upload.
 imageButtonElement.addEventListener('click', function(e) {
-  e.preventDefault();
-  mediaCaptureElement.click();
+    e.preventDefault();
+    mediaCaptureElement.click();
 });
 mediaCaptureElement.addEventListener('change', onMediaFileSelected);
 
@@ -353,117 +354,139 @@ TODO: napraviti da sve radi iz zasebnog filea, chatFunc.js
 */
 
 function snapshotToArray(snapshot) {
-  var returnArr = [];
+    var returnArr = [];
 
-  snapshot.forEach(function(childSnapshot) {
-      var item = childSnapshot.val();
-      item.key = childSnapshot.key;
+    snapshot.forEach(function(childSnapshot) {
+        var item = childSnapshot.val();
+        item.key = childSnapshot.key;
 
-      returnArr.push(item);
-  });
+        returnArr.push(item);
+    });
 
-  return returnArr;
+    return returnArr;
 };
 
-function initUserList(){
+function initUserList() {
 
-  firebase.database().ref("users/").once("value").then(function(snapshot){
-      var usersArray = snapshotToArray(snapshot);        
-      //var userDetail;
-      for(var i = 0; i<usersArray.length;i++){
-          //userDetail= usersArray[i].email;
-          // var contactsToAdd = "<p><b>"+userDetail.substring(0, userDetail.indexOf("@"))+"</b></p><p>Lorem ipsum dolor sit amet</p>";
-          var contactsToAdd = "<p><b>"+usersArray[i].email+"</b></p><p>Lorem ipsum dolor sit amet</p>";
-          var aa = document.createElement("div");
-          aa.className="contact"
-          aa.innerHTML=contactsToAdd;
-          document.getElementById("contacts").appendChild(aa);
-      }
-      $(".contact").click(function(){
-          $("#contact-name").removeAttr("hidden");
-          $("#contact-name").text($(this).find("p:first").text());
+    firebase.database().ref("users/").once("value").then(function(snapshot) {
+        var usersArray = snapshotToArray(snapshot);
 
-      });
-      
-  })
+        //B.Š. - removal of currently logged in user from contacts list
+        for (var i = 0; i < usersArray.length; i++) {
+            if (usersArray[i].email == firebase.auth().currentUser.email) {
+                usersArray.splice(i, 1);
+            }
+        }
+
+        //var userDetail;
+        for (var i = 0; i < usersArray.length; i++) {
+            //userDetail= usersArray[i].email;
+            // var contactsToAdd = "<p><b>"+userDetail.substring(0, userDetail.indexOf("@"))+"</b></p><p>Lorem ipsum dolor sit amet</p>";
+            var contactsToAdd = "<p><b>" + usersArray[i].email + "</b></p><p>Lorem ipsum dolor sit amet</p>";
+            var aa = document.createElement("div");
+            aa.className = "contact"
+            aa.innerHTML = contactsToAdd;
+            document.getElementById("contacts").appendChild(aa);
+        }
+        $(".contact").click(function() {
+            $("#contact-name").removeAttr("hidden");
+            $("#contact-name").text($(this).find("p:first").text());
+
+        });
+
+    })
 }
 
 // Loads chat messages history and listens for upcoming ones.
 function loadMessages() {
-  // Loads the last 12 messages and listen for new ones.
-  var callback = function(snap) {
-    var data = snap.val();
-    console.log(data);
-    displayMessage(snap.key, data.name, data.text, data.profilePicUrl, data.imageUrl);
-  };
+    // Loads the last 12 messages and listen for new ones.
+    var callback = function(snap) {
+        var data = snap.val();
+        console.log(data);
+        displayMessage(snap.key, data.name, data.text, data.profilePicUrl, data.imageUrl);
+    };
 
-  firebase.database().ref('/messages/').limitToLast(12).on('child_added', callback);
-  firebase.database().ref('/messages/').limitToLast(12).on('child_changed', callback);
+    firebase.database().ref('/messages/').limitToLast(12).on('child_added', callback);
+    firebase.database().ref('/messages/').limitToLast(12).on('child_changed', callback);
 }
 
-function saveMessage(msgText){
+function saveMessage(msgText) {
 
-  if($("#contact-name").text()==""){
-    var data = {
-      message: "Please select a contact first",
-      timeout:2000
+    if ($("#contact-name").text() == "") {
+        var data = {
+            message: "Please select a contact first",
+            timeout: 2000
+        }
+        signInSnackbarElement.MaterialSnackbar.showSnackbar(data);
+        return;
     }
-    signInSnackbarElement.MaterialSnackbar.showSnackbar(data);
-    return;
-  }
 
-  else{
-    var partnerUid;
-    firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("child_added",function(snapshot){
-      partnerUid = snapshot.val().uid;
-    });
-    firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).off("child_added",function(){
-      return
-    });
+    else {
+        firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("child_added", function(snapshot) {
+          firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + snapshot.val().uid).update({
+                participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
+                latestMessage: + new Date(),
+                message: msgText,
+                sender:firebase.auth().currentUser.email,
+                groupChat: false
+                
+            }).then(function() {
+                resetMaterialTextfield(messageInputElement);
+                toggleButton();
+            });
+            
+            firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + snapshot.val().uid+"/messages").push({
+              type:"text",
+              content:msgText,
+              sender:firebase.auth().currentUser.email,
+              timestamp: + new Date()
+            });
+            firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).off("child_added", null);
+        });
+        return;
 
-    return firebase.database().ref("chats/"+firebase.auth().currentUser.uid+"_"+partnerUid).set({
-      participants:[firebase.auth().currentUser.email, $("#contact-name").text()],
-      latestMessage: + new Date(),
-      message:msgText
-    });
-  }
-
-  var partnerUid;
-  firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("child_added",function(snapshot){
-    partnerUid = snapshot.val().uid;
-  });
-  firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).off("child_added",function(){
-    return;
-  });
-
-  return firebase.database().ref("chats/"+firebase.auth().currentUser.uid+"_"+partnerUid).set({
-    participants:[firebase.auth().currentUser.email, $("#contact-name").text()],
-    latestMessage: + new Date(),
-    message:msgText
-  });
+        // return firebase.database().ref("chats/"+firebase.auth().currentUser.uid+"_"+partnerUid).set({
+        //   participants:[firebase.auth().currentUser.email, $("#contact-name").text()],
+        //   latestMessage: + new Date(),
+        //   message:msgText
+        // });
+    }
 }
 
-// function onMessageFormSubmit(event){
-//   event.preventDefault();
-//   if(messageInputElement.value&&)
-//   toggleButton();
-//   //alert(messageInputElement.value);
-// }
 
-window.onload=function(){
-  initUserList();
+window.onload = function() {
+    initUserList();
 
 };
 
 
 
-// function onMessageFormSubmit(event){
-//   event.preventDefault();
-//   toggleButton();
-//   alert(messageInputElement.value);
-// }
+//SHIT'S FUCKED YO
 
-// function getMessages(){
-//   var ref = firebase.database().ref("chats");
-//   ref.
-// }
+async function test(){
+
+  // TODO: asinkrono pozivanje funkcije i trpanje snapshot.val() u var podaci, testiranje da li postoji postojeci chat s osobom/grupom, 
+  // ako ne onda napravi novi, ako da, appendaj poruku u child kolekciju messages
+  // https://stackoverflow.com/questions/34905600/best-way-to-retrieve-firebase-data-and-return-it-or-an-alternative-way
+
+  var podaci;
+
+  // return firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("child_added", function(snapshot){
+  //   firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + snapshot.val().uid).once("value").then(function(snapshit){
+  //     //console.log(snapshit.val());
+  //     //return snapshit.val();
+  //   });
+
+  //   // firebase.database().ref("chats/" + snapshot.val().uid  + "_" + firebase.auth().currentUser.uid).once("value").then(function(snapshit){
+  //   //   //console.log(snapshit.val());
+  //   //   return snapshit.val();
+  //   // });
+  // });
+
+  podaci = firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_rRwJAfgh5SSjGQO1qBbpMuNxQP82")
+  console.log(podaci);
+  console.log("Poslije");
+
+
+}
+
