@@ -113,7 +113,7 @@ function isUserSignedIn() {
 
 // Saves the messaging device token to the datastore.
 function saveMessagingDeviceToken() {
-    firebase.messaging().getToken().then(function(currentToken) {
+    firebase.messaging().getToken().then(function (currentToken) {
         if (currentToken) {
             console.log('Got FCM device token:', currentToken);
             // Saving the Device Token to the datastore.
@@ -123,7 +123,7 @@ function saveMessagingDeviceToken() {
             // Need to request permissions to show notifications.
             requestNotificationsPermissions();
         }
-    }).catch(function(error) {
+    }).catch(function (error) {
         console.error('Unable to get messaging token.', error);
     });
 }
@@ -131,10 +131,10 @@ function saveMessagingDeviceToken() {
 // Requests permissions to show notifications.
 function requestNotificationsPermissions() {
     console.log('Requesting notifications permission...');
-    firebase.messaging().requestPermission().then(function() {
+    firebase.messaging().requestPermission().then(function () {
         // Notification permission granted.
         saveMessagingDeviceToken();
-    }).catch(function(error) {
+    }).catch(function (error) {
         console.error('Unable to get permission to notify.', error);
     });
 }
@@ -251,8 +251,9 @@ var MESSAGE_TEMPLATE =
 var LOADING_IMAGE_URL = 'https://www.google.com/images/spin-32.gif?a';
 
 // Displays a Message in the UI.
-function displayMessage(key, name, text, picUrl, imageUrl) {
-    var div = document.getElementById(key);
+function displayMessage(name, text, picUrl, imageUrl) {
+    // var div = document.getElementById(key);
+    var div = document.getElementById("message");
     // If an element for that message does not exists yet we create it.
     if (!div) {
         var container = document.createElement('div');
@@ -272,7 +273,7 @@ function displayMessage(key, name, text, picUrl, imageUrl) {
         messageElement.innerHTML = messageElement.innerHTML.replace(/\n/g, '<br>');
     } else if (imageUrl) { // If the message is an image.
         var image = document.createElement('img');
-        image.addEventListener('load', function() {
+        image.addEventListener('load', function () {
             messageListElement.scrollTop = messageListElement.scrollHeight;
         });
         image.src = imageUrl + '&' + new Date().getTime();
@@ -280,7 +281,7 @@ function displayMessage(key, name, text, picUrl, imageUrl) {
         messageElement.appendChild(image);
     }
     // Show the card fading-in and scroll to view the new message.
-    setTimeout(function() { div.classList.add('visible') }, 1);
+    setTimeout(function () { div.classList.add('visible') }, 1);
     messageListElement.scrollTop = messageListElement.scrollHeight;
     messageInputElement.focus();
 }
@@ -331,7 +332,7 @@ messageInputElement.addEventListener('keyup', toggleButton);
 messageInputElement.addEventListener('change', toggleButton);
 
 // Events for image upload.
-imageButtonElement.addEventListener('click', function(e) {
+imageButtonElement.addEventListener('click', function (e) {
     e.preventDefault();
     mediaCaptureElement.click();
 });
@@ -347,16 +348,12 @@ initFirebaseAuth();
 
 //---------------------------------------------------------------------------------------------------
 
-/*
 
-TODO: napraviti da sve radi iz zasebnog filea, chatFunc.js
-
-*/
 
 function snapshotToArray(snapshot) {
     var returnArr = [];
 
-    snapshot.forEach(function(childSnapshot) {
+    snapshot.forEach(function (childSnapshot) {
         var item = childSnapshot.val();
         item.key = childSnapshot.key;
 
@@ -368,7 +365,7 @@ function snapshotToArray(snapshot) {
 
 function initUserList() {
 
-    firebase.database().ref("users/").once("value").then(function(snapshot) {
+    firebase.database().ref("users/").once("value").then(function (snapshot) {
         var usersArray = snapshotToArray(snapshot);
 
         //B.Š. - removal of currently logged in user from contacts list
@@ -378,7 +375,6 @@ function initUserList() {
             }
         }
 
-        //var userDetail;
         for (var i = 0; i < usersArray.length; i++) {
             //userDetail= usersArray[i].email;
             // var contactsToAdd = "<p><b>"+userDetail.substring(0, userDetail.indexOf("@"))+"</b></p><p>Lorem ipsum dolor sit amet</p>";
@@ -388,29 +384,35 @@ function initUserList() {
             aa.innerHTML = contactsToAdd;
             document.getElementById("contacts").appendChild(aa);
         }
-        $(".contact").click(function() {
+        $(".contact").click(function () {
             $("#contact-name").removeAttr("hidden");
             $("#contact-name").text($(this).find("p:first").text());
-
+            loadMessages($("#contact-name").text());
         });
 
     })
 }
 
 // Loads chat messages history and listens for upcoming ones.
-function loadMessages() {
+function loadMessages(contactName) {
     // Loads the last 12 messages and listen for new ones.
-    var callback = function(snap) {
+    var callback = function (snap) {
         var data = snap.val();
         console.log(data);
-        displayMessage(snap.key, data.name, data.text, data.profilePicUrl, data.imageUrl);
+        //displayMessage(snap.key, data.name, data.text, data.profilePicUrl, data.imageUrl);
+        displayMessage(data.name, data.text, data.profilePicUrl, data.imageUrl);
     };
+
+
 
     firebase.database().ref('/messages/').limitToLast(12).on('child_added', callback);
     firebase.database().ref('/messages/').limitToLast(12).on('child_changed', callback);
+    //snapshot.key sadrzi ime (kljuc) trenutnog nodea, npr chats ili 2ezM0gJxXifGT4RFOxcDq6x08bm1_6CnRSTC7amZPLFYxridvedSMIS12 , i.e. uid1_uid2 kao id od razgovora
 }
 
 function saveMessage(msgText) {
+
+    //var secondUserUid;
 
     if ($("#contact-name").text() == "") {
         var data = {
@@ -422,70 +424,100 @@ function saveMessage(msgText) {
     }
 
     else {
-        firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("child_added", function(snapshot) {
-          firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + snapshot.val().uid).update({
-                participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
-                latestMessage: + new Date(),
-                message: msgText,
-                sender:firebase.auth().currentUser.email,
-                groupChat: false
-                
-            }).then(function() {
-                resetMaterialTextfield(messageInputElement);
-                toggleButton();
+        var contactCallback = firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("child_added", function (snapshot) {
+
+            var secondUserUid = snapshot.val().uid;
+
+            firebase.database().ref("chats").once("value").then(function (snapshot) {
+                //  B.Š. - check if conversations already exist, if not, create a new convo. 
+                //  Checks for uid1_uid2, uid2_uid1 convo names.
+
+                if (snapshot.hasChild(firebase.auth().currentUser.uid + "_" + secondUserUid)) {
+                    firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid).update({
+                        participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
+                        latestMessage: + new Date(),
+                        message: msgText,
+                        sender: firebase.auth().currentUser.email,
+                        groupChat: false
+
+                    }).then(function () {
+                        resetMaterialTextfield(messageInputElement);
+                        toggleButton();
+                    });
+
+                    firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid + "/messages").push({
+                        type: "text",
+                        content: msgText,
+                        sender: firebase.auth().currentUser.email,
+                        timestamp: + new Date()
+                    });
+                    firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).off("child_added", null);
+                }
+                else if (snapshot.hasChild(secondUserUid + "_" + firebase.auth().currentUser.uid)) {
+                    firebase.database().ref("chats/" + secondUserUid + "_" + firebase.auth().currentUser.uid).update({
+                        participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
+                        latestMessage: + new Date(),
+                        message: msgText,
+                        sender: firebase.auth().currentUser.email,
+                        groupChat: false
+
+                    }).then(function () {
+                        resetMaterialTextfield(messageInputElement);
+                        toggleButton();
+                    });
+
+                    firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid + "/messages").push({
+                        type: "text",
+                        content: msgText,
+                        sender: firebase.auth().currentUser.email,
+                        timestamp: + new Date()
+                    });
+                    firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).off("child_added", null);
+                }
+                else {
+                    firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
+                        participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
+                        latestMessage: + new Date(),
+                        message: msgText,
+                        latestMessageSender: firebase.auth().currentUser.email,
+                        groupChat: false
+
+                    }).then(function () {
+                        resetMaterialTextfield(messageInputElement);
+                        toggleButton();
+                    });
+
+                    firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid + "/messages").push({
+                        type: "text",
+                        content: msgText,
+                        sender: firebase.auth().currentUser.email,
+                        timestamp: + new Date()
+                    });
+                    firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).off("child_added", null);
+                }
             });
-            
-            firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + snapshot.val().uid+"/messages").push({
-              type:"text",
-              content:msgText,
-              sender:firebase.auth().currentUser.email,
-              timestamp: + new Date()
-            });
-            firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).off("child_added", null);
+            firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).off("child_added", contactCallback);
         });
         return;
-
-        // return firebase.database().ref("chats/"+firebase.auth().currentUser.uid+"_"+partnerUid).set({
-        //   participants:[firebase.auth().currentUser.email, $("#contact-name").text()],
-        //   latestMessage: + new Date(),
-        //   message:msgText
-        // });
     }
 }
 
 
-window.onload = function() {
+window.onload = function () {
     initUserList();
-
 };
 
+//TESTING 'N' SHIT
+
+function test() {
+
+    // https://stackoverflow.com/questions/34905600/best-way-to-retrieve-firebase-data-and-return-it-or-an-alternative-way
 
 
-//SHIT'S FUCKED YO
-
-async function test(){
-
-  // TODO: asinkrono pozivanje funkcije i trpanje snapshot.val() u var podaci, testiranje da li postoji postojeci chat s osobom/grupom, 
-  // ako ne onda napravi novi, ako da, appendaj poruku u child kolekciju messages
-  // https://stackoverflow.com/questions/34905600/best-way-to-retrieve-firebase-data-and-return-it-or-an-alternative-way
-
-  var podaci;
-
-  // return firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("child_added", function(snapshot){
-  //   firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + snapshot.val().uid).once("value").then(function(snapshit){
-  //     //console.log(snapshit.val());
-  //     //return snapshit.val();
-  //   });
-
-  //   // firebase.database().ref("chats/" + snapshot.val().uid  + "_" + firebase.auth().currentUser.uid).once("value").then(function(snapshit){
-  //   //   //console.log(snapshit.val());
-  //   //   return snapshit.val();
-  //   // });
-  // });
-
-  podaci = firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_rRwJAfgh5SSjGQO1qBbpMuNxQP82")
-  console.log(podaci);
-  console.log("Poslije");
+    // var ref = firebase.database().ref("chats");
+    // ref.once("value").then(function (snapshit) {
+    //     console.log(snapshit.hasChild("rRwJAfgh5SSjGQO1qBbpMuNxQP82_" + firebase.auth().currentUser.uid));
+    // });
 
 
 }
