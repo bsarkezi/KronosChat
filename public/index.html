@@ -71,7 +71,7 @@
             </div>
         </header>
 
-        <main class="mdl-layout__content mdl-color--grey-100">
+        <main class="mdl-layout__content mdl-color--grey-100" id="main">
             <div id="messages-card-container" class="mdl-cell mdl-cell--12-col mdl-grid">
                 <section>
 
@@ -82,33 +82,13 @@
 
 
                         <div class="mdl-card__supporting-text mdl-color-text--grey-600" id="contacts">
-                            <form action="#">
+                            <form action="#" autocomplete="off">
                                 <div class="mdl-textfield mdl-js-textfield">
+                                    
                                     <input class="mdl-textfield__input" type="text" id="sample1">
                                     <label class="mdl-textfield__label" for="sample1">Search users...</label>
                                 </div>
-                            </form>
-                            <!-- <div class="contact">
-                                <p>
-                                    <b>Ime Prezime</b>
-                                </p>
-                                <p>Lorem ipsum dolor sit amet</p>
-                            </div>
-
-                            <div class="contact">
-                                <p>
-                                    <b>Ime Prezime2</b>
-                                </p>
-                                <p>Lorem ipsum dolor sit amet</p>
-                            </div>
-
-                            <div class="contact">
-                                <p>
-                                    <b>Ime Prezime3</b>
-                                </p>
-                                <p>Lorem ipsum dolor sit amet</p>
-                            </div>
-                             -->
+                            </form>                       
 
                             
                         </div>
@@ -127,16 +107,18 @@
                             <div id="messages">
                                 <span id="message-filler"></span>
                             </div>
-                            <form id="message-form" action="#">
+                            <form id="message-form" action="#" autocomplete="off">
                                 <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-                                    <input class="mdl-textfield__input" type="text" id="message">
+                                    <input autocomplete="false" name="hidden" type="text" style="display:none;">
+                                    <input class="mdl-textfield__input" type="text" id="message" autocomplete="off">
                                     <label class="mdl-textfield__label" for="message">Message...</label>
                                 </div>
                                 <button id="submit" disabled type="submit" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect">
                                     Send
                                 </button>
                             </form>
-                            <form id="image-form" action="#">
+                            <form id="image-form" action="#" autocomplete="off">
+                                <input autocomplete="false" name="hidden" type="text" style="display:none;">
                                 <input id="mediaCapture" type="file" accept="image/*" capture="camera">
                                 <button id="submitImage" title="Add an image" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-color--amber-400 mdl-color-text--white">
                                     <i class="material-icons">image</i>
@@ -155,8 +137,6 @@
             </div>
         </main>
     </div>
-
-
 
     <!-- Firebase App is always required and must be first -->
     <script src="https://www.gstatic.com/firebasejs/5.3.0/firebase-app.js"></script>
@@ -181,10 +161,7 @@
         };
         firebase.initializeApp(config);
     </script>
-
-
     <script src="scripts/main.js"></script>
-    <!-- <script src="scripts/chatFunc.js"></script> -->
 
 </body>
 

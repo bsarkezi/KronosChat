@@ -180,14 +180,6 @@ function onMessageFormSubmit(e) {
 function authStateObserver(user) {
     if (user) { // User is signed in!
 
-        //B.Š. - Add user to users table in DB, no duplicates
-        // firebase.database().ref("users/" + firebase.auth().currentUser.uid).set({
-        //   name: firebase.auth().currentUser.displayName,
-        //   email: firebase.auth().currentUser.email, 
-        //   profilePic: firebase.auth().currentUser.photoURL,
-        //   uid: firebase.auth().currentUser.uid
-        // });
-
         // Get the signed-in user's profile pic and name.
         var profilePicUrl = getProfilePicUrl();
         var userName = getUserName();
@@ -204,8 +196,10 @@ function authStateObserver(user) {
         // Hide sign-in button.
         signInButtonElement.setAttribute('hidden', 'true');
 
+        //$("#main").show()
         // We save the Firebase Messaging Device token and enable notifications.
         saveMessagingDeviceToken();
+        
     } else { // User is signed out!
         // Hide user's profile and sign-out button.
         userNameElement.setAttribute('hidden', 'true');
@@ -214,6 +208,8 @@ function authStateObserver(user) {
 
         // Show sign-in button.
         signInButtonElement.removeAttribute('hidden');
+
+        //$("#main").hide();
     }
 }
 
@@ -251,10 +247,10 @@ var MESSAGE_TEMPLATE =
 var LOADING_IMAGE_URL = 'https://www.google.com/images/spin-32.gif?a';
 
 // Displays a Message in the UI.
-function displayMessage(name, text, picUrl, imageUrl) {
+function displayMessage(key, name, text, picUrl, imageUrl) {
     // var div = document.getElementById(key);
-    var div = document.getElementById("message");
-    // If an element for that message does not exists yet we create it.
+    var div = document.getElementById(key);
+    // If an element for that message does not exist yet we create it.
     if (!div) {
         var container = document.createElement('div');
         container.innerHTML = MESSAGE_TEMPLATE;
@@ -341,12 +337,11 @@ mediaCaptureElement.addEventListener('change', onMediaFileSelected);
 // initialize Firebase
 initFirebaseAuth();
 
-// We load currently existing chat messages and listen to new ones.
-
-
-
-
 //---------------------------------------------------------------------------------------------------
+
+//TODO: naci drugi nacin doohvacanja grupa u kojima je korisnik
+
+var groups = [];
 
 function snapshotToArray(snapshot) {
     var returnArr = [];
@@ -363,7 +358,19 @@ function snapshotToArray(snapshot) {
 
 
 
-function initUserList() {
+function initContactsList() {
+
+    firebase.database().ref("groups").on("value",function(snap){
+        //console.log(snap.val());
+        snap.forEach((a)=>{
+            a.val().participants.forEach((p)=>{
+                if(p==firebase.auth().currentUser.email){
+                    groups.push(a.key);
+                }
+            });
+        });
+    });
+
 
     firebase.database().ref("users/").once("value").then(function (snapshot) {
         var usersArray = snapshotToArray(snapshot);
@@ -374,6 +381,8 @@ function initUserList() {
                 usersArray.splice(i, 1);
             }
         }
+
+        
 
         for (var i = 0; i < usersArray.length; i++) {
             //userDetail= usersArray[i].email;
@@ -387,26 +396,37 @@ function initUserList() {
         $(".contact").click(function () {
             $("#contact-name").removeAttr("hidden");
             $("#contact-name").text($(this).find("p:first").text());
-            loadMessages($("#contact-name").text());
+            loadMessages();
         });
 
     })
 }
 
 // Loads chat messages history and listens for upcoming ones.
-function loadMessages(contactName) {
-    var callback = function (snap) {
+function loadMessages() {
+
+    messageListElement.innerHTML='<span id="message-filler"></span>';
+
+    var msgCallback = function (snap) {
         var data = snap.val();
         console.log(data);
-        //displayMessage(snap.key, data.name, data.text, data.profilePicUrl, data.imageUrl);
-        displayMessage(data.name, data.text, data.profilePicUrl, data.imageUrl);
+        displayMessage(snap.key, data.sender, data.content, data.profilePic, data.imageUrl);
     };
 
-
-
-    // firebase.database().ref('/messages/').limitToLast(12).on('child_added', callback);
-    // firebase.database().ref('/messages/').limitToLast(12).on('child_changed', callback);
-    //snapshot.key sadrzi ime (kljuc) trenutnog nodea, npr chats ili 2ezM0gJxXifGT4RFOxcDq6x08bm1_6CnRSTC7amZPLFYxridvedSMIS12 , i.e. uid1_uid2 kao id od razgovora
+    firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("child_added", function (snapshot) {
+        var secondUserUid = snapshot.val().uid;
+        firebase.database().ref("chats").once("value").then(function(snapshot){
+            if(snapshot.hasChild(firebase.auth().currentUser.uid+"_"+secondUserUid)){
+                firebase.database().ref("/chats/"+firebase.auth().currentUser.uid+"_"+secondUserUid+"/messages").on("child_added", msgCallback);
+                firebase.database().ref("chats/"+firebase.auth().currentUser.uid+"_"+secondUserUid+"/messages").on("child_changed", msgCallback);
+            }
+            else if(snapshot.hasChild(secondUserUid+"_"+ firebase.auth().currentUser.uid)){
+                firebase.database().ref("chats/"+secondUserUid+"_"+ firebase.auth().currentUser.uid+"/messages").on("child_added", msgCallback);
+                firebase.database().ref("chats/"+secondUserUid+"_"+ firebase.auth().currentUser.uid+"/messages").on("child_changed", msgCallback);
+            }
+            
+        });
+    });
 }
 
 function saveMessage(msgText) {
@@ -421,7 +441,7 @@ function saveMessage(msgText) {
     }
 
     else {
-        var contactCallback = firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("child_added", function (snapshot) {
+        firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("child_added", function (snapshot) {
 
             var secondUserUid = snapshot.val().uid;
 
@@ -448,8 +468,6 @@ function saveMessage(msgText) {
                             profilePic: firebase.auth().currentUser.photoURL
                         });
                     });
-                    //firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).off("child_added", null);
-
 
                 }
                 else if (snapshot.hasChild(secondUserUid + "_" + firebase.auth().currentUser.uid)) {
@@ -471,8 +489,6 @@ function saveMessage(msgText) {
                             timestamp: + new Date()
                         });
                     });
-                    //firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).off("child_added", null);
-
 
                 }
                 else {
@@ -495,60 +511,33 @@ function saveMessage(msgText) {
                             timestamp: + new Date()
                         });
                     });
-
-                    
                 }
             });
-            //firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).off("child_added", contactCallback);
         });
         return;
     }
 }
 
-
 window.onload = function () {
-    initUserList();
+    initContactsList();
 };
 
 //TESTING AN' SHIT
 
 function test() {
 
-    
-    //TODO: strpaj sve elemente /messages stabla u array
-
-    var msgCallback = function(snapshot){
-        // var msgArray = snapshotToArray(snapshot);
-        // console.log(msgArray);
-        //console.log(snapshot.val());
-        var msgArray = [];
-        snapshot.val().forEach((snap)=>{
-            //msgArray.push(snap.val());
-            //console.log(msgArray);
-            console.log(snap.val())
-        })
+    firebase.database().ref("groups").on("value",function(snap){
         //console.log(snap.val());
-        return;
-    }
-
-    if($("#contact-name").text()==""){
-        console.log("budalo odaberi kontakt");
-    }
-
-    firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("child_added", function (snapshot) {
-        var secondUserUid = snapshot.val().uid;
-        //console.log(secondUserUid);
-        firebase.database().ref("chats").once("value").then(function(snapshot){
-            if(snapshot.hasChild(firebase.auth().currentUser.uid+"_"+secondUserUid)){
-                firebase.database().ref("chats/"+firebase.auth().currentUser.uid+"_"+secondUserUid+"/messages").on("child_added", msgCallback);
-                firebase.database().ref("chats/"+firebase.auth().currentUser.uid+"_"+secondUserUid+"/messages").on("child_changed", msgCallback);
-            }
-            else if(snapshot.hasChild(secondUserUid+"_"+ firebase.auth().currentUser.uid)){
-                firebase.database().ref("chats/"+secondUserUid+"_"+ firebase.auth().currentUser.uid+"/messages").on("child_added", msgCallback);
-                firebase.database().ref("chats/"+secondUserUid+"_"+ firebase.auth().currentUser.uid+"/messages").on("child_changed", msgCallback);
-            }
+        
+        snap.forEach((a)=>{
+            a.val().participants.forEach((p)=>{
+                //console.log(p);
+                if(p==firebase.auth().currentUser.email){
+                    console.log(a.key);
+                }
+            });
+            console.log("----")
         });
     });
-    return;
 }
 
