@@ -199,7 +199,7 @@ function authStateObserver(user) {
         //$("#main").show()
         // We save the Firebase Messaging Device token and enable notifications.
         saveMessagingDeviceToken();
-        
+
     } else { // User is signed out!
         // Hide user's profile and sign-out button.
         userNameElement.setAttribute('hidden', 'true');
@@ -357,19 +357,23 @@ function snapshotToArray(snapshot) {
 };
 
 
-
-function initContactsList() {
-
-    firebase.database().ref("groups").on("value",function(snap){
-        //console.log(snap.val());
-        snap.forEach((a)=>{
-            a.val().participants.forEach((p)=>{
-                if(p==firebase.auth().currentUser.email){
-                    groups.push(a.key);
+async function initGroupsList() {
+    return firebase.database().ref("groups").on("value", function (snap) {
+        snap.forEach((a) => {
+            a.val().participants.forEach((p) => {
+                if (p == firebase.auth().currentUser.email) {
+                    groups.push(a.val());
                 }
             });
         });
+        console.log(groups);
     });
+}
+
+
+function initContactsList() {
+
+
 
 
     firebase.database().ref("users/").once("value").then(function (snapshot) {
@@ -382,12 +386,15 @@ function initContactsList() {
             }
         }
 
-        
+        groups.forEach(function (g) {
+            usersArray.push(g);
+        })
+
 
         for (var i = 0; i < usersArray.length; i++) {
             //userDetail= usersArray[i].email;
             // var contactsToAdd = "<p><b>"+userDetail.substring(0, userDetail.indexOf("@"))+"</b></p><p>Lorem ipsum dolor sit amet</p>";
-            var contactsToAdd = "<p><b>" + usersArray[i].email + "</b></p><p>Lorem ipsum dolor sit amet</p>";
+            var contactsToAdd = "<p><b>" + usersArray[i].displayName + "</b></p><p>Lorem ipsum dolor sit amet</p>";
             var aa = document.createElement("div");
             aa.className = "contact"
             aa.innerHTML = contactsToAdd;
@@ -405,7 +412,7 @@ function initContactsList() {
 // Loads chat messages history and listens for upcoming ones.
 function loadMessages() {
 
-    messageListElement.innerHTML='<span id="message-filler"></span>';
+    messageListElement.innerHTML = '<span id="message-filler"></span>';
 
     var msgCallback = function (snap) {
         var data = snap.val();
@@ -415,16 +422,16 @@ function loadMessages() {
 
     firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("child_added", function (snapshot) {
         var secondUserUid = snapshot.val().uid;
-        firebase.database().ref("chats").once("value").then(function(snapshot){
-            if(snapshot.hasChild(firebase.auth().currentUser.uid+"_"+secondUserUid)){
-                firebase.database().ref("/chats/"+firebase.auth().currentUser.uid+"_"+secondUserUid+"/messages").on("child_added", msgCallback);
-                firebase.database().ref("chats/"+firebase.auth().currentUser.uid+"_"+secondUserUid+"/messages").on("child_changed", msgCallback);
+        firebase.database().ref("chats").once("value").then(function (snapshot) {
+            if (snapshot.hasChild(firebase.auth().currentUser.uid + "_" + secondUserUid)) {
+                firebase.database().ref("/chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid + "/messages").on("child_added", msgCallback);
+                firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid + "/messages").on("child_changed", msgCallback);
             }
-            else if(snapshot.hasChild(secondUserUid+"_"+ firebase.auth().currentUser.uid)){
-                firebase.database().ref("chats/"+secondUserUid+"_"+ firebase.auth().currentUser.uid+"/messages").on("child_added", msgCallback);
-                firebase.database().ref("chats/"+secondUserUid+"_"+ firebase.auth().currentUser.uid+"/messages").on("child_changed", msgCallback);
+            else if (snapshot.hasChild(secondUserUid + "_" + firebase.auth().currentUser.uid)) {
+                firebase.database().ref("chats/" + secondUserUid + "_" + firebase.auth().currentUser.uid + "/messages").on("child_added", msgCallback);
+                firebase.database().ref("chats/" + secondUserUid + "_" + firebase.auth().currentUser.uid + "/messages").on("child_changed", msgCallback);
             }
-            
+
         });
     });
 }
@@ -443,101 +450,137 @@ function saveMessage(msgText) {
     else {
         firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("child_added", function (snapshot) {
 
-            var secondUserUid = snapshot.val().uid;
 
-            firebase.database().ref("chats").once("value").then(function (snapshot) {
-                //  B.Š. - check if conversations already exist, if not, create a new convo. 
-                //  Checks for uid1_uid2, uid2_uid1 convo names.
+            //ici u ovome smjeru, trebalo bi raditi
 
-                if (snapshot.hasChild(firebase.auth().currentUser.uid + "_" + secondUserUid)) {
-                    console.log(1);
-                    firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid).update({
-                        participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
-                        latestMessage: + new Date(),
-                        message: msgText,
-                        sender: firebase.auth().currentUser.email,
-                        groupChat: false
-                    }).then(function () {
-                        resetMaterialTextfield(messageInputElement);
-                        toggleButton();
-                        firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid + "/messages").push({
-                            type: "text",
-                            content: msgText,
+            // firebase.database().ref("users").orderByChild("email").equalTo("group1").on("value",function(snap){
+            //     if(snap.val()){
+            // console.log(1);
+            // }
+            // else{
+            // console.log(2);
+            // }
+            // })
+
+            if (snapshot.val()) {
+                var secondUserUid = snapshot.val().uid;
+                console.log(secondUserUid);
+                firebase.database().ref("chats").once("value").then(function (snapshot) {
+                    //  B.Š. - check if conversations already exist, if not, create a new convo. 
+                    //  Checks for uid1_uid2, uid2_uid1 convo names.
+
+                    if (snapshot.hasChild(firebase.auth().currentUser.uid + "_" + secondUserUid)) {
+                        console.log(1);
+                        firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid).update({
+                            participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
+                            latestMessage: + new Date(),
+                            message: msgText,
                             sender: firebase.auth().currentUser.email,
-                            timestamp: + new Date(),
+                            groupChat: false
+                        }).then(function () {
+                            resetMaterialTextfield(messageInputElement);
+                            toggleButton();
+                            firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid + "/messages").push({
+                                type: "text",
+                                content: msgText,
+                                sender: firebase.auth().currentUser.email,
+                                timestamp: + new Date(),
+                                profilePic: firebase.auth().currentUser.photoURL
+                            });
+                        });
+
+                    }
+                    else if (snapshot.hasChild(secondUserUid + "_" + firebase.auth().currentUser.uid)) {
+                        console.log(2);
+                        firebase.database().ref("chats/" + secondUserUid + "_" + firebase.auth().currentUser.uid).update({
+                            participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
+                            latestMessage: + new Date(),
+                            message: msgText,
+                            sender: firebase.auth().currentUser.email,
+                            groupChat: false,
                             profilePic: firebase.auth().currentUser.photoURL
+                        }).then(function () {
+                            resetMaterialTextfield(messageInputElement);
+                            toggleButton();
+                            firebase.database().ref("chats/" + secondUserUid + "_" + firebase.auth().currentUser.uid + "/messages").push({
+                                type: "text",
+                                content: msgText,
+                                sender: firebase.auth().currentUser.email,
+                                timestamp: + new Date()
+                            });
                         });
-                    });
 
-                }
-                else if (snapshot.hasChild(secondUserUid + "_" + firebase.auth().currentUser.uid)) {
-                    console.log(2);
-                    firebase.database().ref("chats/" + secondUserUid + "_" + firebase.auth().currentUser.uid).update({
-                        participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
-                        latestMessage: + new Date(),
-                        message: msgText,
+                    }
+                    else {
+                        console.log(3);
+                        firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
+                            participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
+                            latestMessage: + new Date(),
+                            message: msgText,
+                            latestMessageSender: firebase.auth().currentUser.email,
+                            groupChat: false,
+                            profilePic: firebase.auth().currentUser.photoURL
+                        }).then(function () {
+                            resetMaterialTextfield(messageInputElement);
+                            toggleButton();
+
+                            firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid + "/messages").push({
+                                type: "text",
+                                content: msgText,
+                                sender: firebase.auth().currentUser.email,
+                                timestamp: + new Date()
+                            });
+                        });
+                    }
+                });
+            }
+
+            else{
+                console.log("grupni chat");
+                firebase.database().ref("chats/"+$("#contact-name").text()).set({
+                    latestMessage:+ new Date(),
+                    latestMessageSender: firebase.auth().currentUser.email,
+                    latestMessage: msgText,
+                    profilePic: firebase.auth().currentUser.email,
+                }).then(function(){
+                    firebase.database().ref("chats/"+$("#contact-name").text()+"/messages").push({
+                        content: msgText,
                         sender: firebase.auth().currentUser.email,
-                        groupChat: false,
-                        profilePic: firebase.auth().currentUser.photoURL
-                    }).then(function () {
-                        resetMaterialTextfield(messageInputElement);
-                        toggleButton();
-                        firebase.database().ref("chats/" + secondUserUid + "_" + firebase.auth().currentUser.uid + "/messages").push({
-                            type: "text",
-                            content: msgText,
-                            sender: firebase.auth().currentUser.email,
-                            timestamp: + new Date()
-                        });
-                    });
+                        type:"text",
+                        profilePic: firebase.auth().currentUser.photoURL,
 
-                }
-                else {
-                    console.log(3);
-                    firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
-                        participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
-                        latestMessage: + new Date(),
-                        message: msgText,
-                        latestMessageSender: firebase.auth().currentUser.email,
-                        groupChat: false,
-                        profilePic: firebase.auth().currentUser.photoURL
-                    }).then(function () {
-                        resetMaterialTextfield(messageInputElement);
-                        toggleButton();
+                    })
+                });
+            }
 
-                        firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid + "/messages").push({
-                            type: "text",
-                            content: msgText,
-                            sender: firebase.auth().currentUser.email,
-                            timestamp: + new Date()
-                        });
-                    });
-                }
-            });
+
         });
         return;
     }
 }
 
 window.onload = function () {
-    initContactsList();
+    initGroupsList().then(function () {
+        initContactsList();
+    })
+
 };
 
 //TESTING AN' SHIT
 
 function test() {
 
-    firebase.database().ref("groups").on("value",function(snap){
-        //console.log(snap.val());
-        
-        snap.forEach((a)=>{
-            a.val().participants.forEach((p)=>{
-                //console.log(p);
-                if(p==firebase.auth().currentUser.email){
-                    console.log(a.key);
+    firebase.database().ref("groups").on("value", function (snap) {
+        // console.log(snap.val());
+        snap.forEach((a) => {
+            a.val().participants.forEach((p) => {
+                if (p == firebase.auth().currentUser.email) {
+                    groups.push(a.key);
                 }
             });
-            console.log("----")
         });
+        console.log(groups[0]);
     });
+
 }
 
