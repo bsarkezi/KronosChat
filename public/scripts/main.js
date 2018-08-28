@@ -19,7 +19,11 @@
 function signIn() {
     // Sign in Firebase using popup auth and Google as the identity provider.
     var provider = new firebase.auth.GoogleAuthProvider();
-    firebase.auth().signInWithPopup(provider);
+    firebase.auth().signInWithPopup(provider).then(function () {
+        initGroupsList().then(function () {
+            initContactsList()
+        })
+    });
 
     // if(firebase.auth().currentUser){
     //   firebase.database().ref("users/" + firebase.auth().currentUser.uid).set({
@@ -373,9 +377,6 @@ async function initGroupsList() {
 
 function initContactsList() {
 
-
-
-
     firebase.database().ref("users/").once("value").then(function (snapshot) {
         var usersArray = snapshotToArray(snapshot);
 
@@ -389,7 +390,6 @@ function initContactsList() {
         groups.forEach(function (g) {
             usersArray.push(g);
         })
-
 
         for (var i = 0; i < usersArray.length; i++) {
             //userDetail= usersArray[i].email;
@@ -420,20 +420,30 @@ function loadMessages() {
         displayMessage(snap.key, data.sender, data.content, data.profilePic, data.imageUrl);
     };
 
-    firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("child_added", function (snapshot) {
-        var secondUserUid = snapshot.val().uid;
-        firebase.database().ref("chats").once("value").then(function (snapshot) {
-            if (snapshot.hasChild(firebase.auth().currentUser.uid + "_" + secondUserUid)) {
-                firebase.database().ref("/chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid + "/messages").on("child_added", msgCallback);
-                firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid + "/messages").on("child_changed", msgCallback);
-            }
-            else if (snapshot.hasChild(secondUserUid + "_" + firebase.auth().currentUser.uid)) {
-                firebase.database().ref("chats/" + secondUserUid + "_" + firebase.auth().currentUser.uid + "/messages").on("child_added", msgCallback);
-                firebase.database().ref("chats/" + secondUserUid + "_" + firebase.auth().currentUser.uid + "/messages").on("child_changed", msgCallback);
-            }
+    firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("value", function (snapshot) {
+        if (snapshot.exists()) {
 
-        });
+            firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("child_added", function (snapshot) {
+                var secondUserUid = snapshot.val().uid;
+                firebase.database().ref("chats").once("value").then(function (snapshot) {
+                    if (snapshot.hasChild(firebase.auth().currentUser.uid + "_" + secondUserUid)) {
+                        firebase.database().ref("/chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid + "/messages").on("child_added", msgCallback);
+                        firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid + "/messages").on("child_changed", msgCallback);
+                    }
+                    else if (snapshot.hasChild(secondUserUid + "_" + firebase.auth().currentUser.uid)) {
+                        firebase.database().ref("chats/" + secondUserUid + "_" + firebase.auth().currentUser.uid + "/messages").on("child_added", msgCallback);
+                        firebase.database().ref("chats/" + secondUserUid + "_" + firebase.auth().currentUser.uid + "/messages").on("child_changed", msgCallback);
+                    }
+
+                });
+            });
+        }
+        else {
+            firebase.database().ref("chats/" + $("#contact-name").text() + "/messages").on("child_added", msgCallback);
+            firebase.database().ref("chats/" + $("#contact-name").text() + "/messages").on("child_changed", msgCallback);
+        }
     });
+
 }
 
 function saveMessage(msgText) {
@@ -448,117 +458,264 @@ function saveMessage(msgText) {
     }
 
     else {
-        firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("child_added", function (snapshot) {
+        firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("value", function (snapshot) {
+            if (snapshot.exists()) {
+                firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).once("child_added", function (snapshot) {
+                    var secondUserUid = snapshot.val().uid;
+                    firebase.database().ref("chats").once("value").then(function (snapshot) {
+                        //  B.Š. - check if conversations already exist, if not, create a new convo. 
+                        //  Checks for uid1_uid2, uid2_uid1 convo names.
 
-
-            //ici u ovome smjeru, trebalo bi raditi
-
-            // firebase.database().ref("users").orderByChild("email").equalTo("group1").on("value",function(snap){
-            //     if(snap.val()){
-            // console.log(1);
-            // }
-            // else{
-            // console.log(2);
-            // }
-            // })
-
-            if (snapshot.val()) {
-                var secondUserUid = snapshot.val().uid;
-                console.log(secondUserUid);
-                firebase.database().ref("chats").once("value").then(function (snapshot) {
-                    //  B.Š. - check if conversations already exist, if not, create a new convo. 
-                    //  Checks for uid1_uid2, uid2_uid1 convo names.
-
-                    if (snapshot.hasChild(firebase.auth().currentUser.uid + "_" + secondUserUid)) {
-                        console.log(1);
-                        firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid).update({
-                            participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
-                            latestMessage: + new Date(),
-                            message: msgText,
-                            sender: firebase.auth().currentUser.email,
-                            groupChat: false
-                        }).then(function () {
-                            resetMaterialTextfield(messageInputElement);
-                            toggleButton();
-                            firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid + "/messages").push({
-                                type: "text",
-                                content: msgText,
+                        if (snapshot.hasChild(firebase.auth().currentUser.uid + "_" + secondUserUid)) {
+                            firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid).update({
+                                participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
+                                latestMessage: + new Date(),
+                                message: msgText,
                                 sender: firebase.auth().currentUser.email,
-                                timestamp: + new Date(),
+                                groupChat: false
+                            }).then(function () {
+                                resetMaterialTextfield(messageInputElement);
+                                toggleButton();
+                                firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid + "/messages").push({
+                                    type: "text",
+                                    content: msgText,
+                                    sender: firebase.auth().currentUser.email,
+                                    timestamp: + new Date(),
+                                    profilePic: firebase.auth().currentUser.photoURL
+                                });
+                            });
+
+                        }
+                        else if (snapshot.hasChild(secondUserUid + "_" + firebase.auth().currentUser.uid)) {
+                            firebase.database().ref("chats/" + secondUserUid + "_" + firebase.auth().currentUser.uid).update({
+                                participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
+                                latestMessage: + new Date(),
+                                message: msgText,
+                                sender: firebase.auth().currentUser.email,
+                                groupChat: false,
                                 profilePic: firebase.auth().currentUser.photoURL
+                            }).then(function () {
+                                resetMaterialTextfield(messageInputElement);
+                                toggleButton();
+                                firebase.database().ref("chats/" + secondUserUid + "_" + firebase.auth().currentUser.uid + "/messages").push({
+                                    type: "text",
+                                    content: msgText,
+                                    sender: firebase.auth().currentUser.email,
+                                    timestamp: + new Date()
+                                });
                             });
-                        });
 
-                    }
-                    else if (snapshot.hasChild(secondUserUid + "_" + firebase.auth().currentUser.uid)) {
-                        console.log(2);
-                        firebase.database().ref("chats/" + secondUserUid + "_" + firebase.auth().currentUser.uid).update({
-                            participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
-                            latestMessage: + new Date(),
-                            message: msgText,
-                            sender: firebase.auth().currentUser.email,
-                            groupChat: false,
-                            profilePic: firebase.auth().currentUser.photoURL
-                        }).then(function () {
-                            resetMaterialTextfield(messageInputElement);
-                            toggleButton();
-                            firebase.database().ref("chats/" + secondUserUid + "_" + firebase.auth().currentUser.uid + "/messages").push({
-                                type: "text",
-                                content: msgText,
-                                sender: firebase.auth().currentUser.email,
-                                timestamp: + new Date()
+                        }
+                        else {
+                            firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
+                                participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
+                                latestMessage: + new Date(),
+                                message: msgText,
+                                latestMessageSender: firebase.auth().currentUser.email,
+                                groupChat: false,
+                                profilePic: firebase.auth().currentUser.photoURL
+                            }).then(function () {
+                                resetMaterialTextfield(messageInputElement);
+                                toggleButton();
+
+                                firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid + "/messages").push({
+                                    type: "text",
+                                    content: msgText,
+                                    sender: firebase.auth().currentUser.email,
+                                    timestamp: + new Date()
+                                });
                             });
-                        });
-
-                    }
-                    else {
-                        console.log(3);
-                        firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
-                            participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
-                            latestMessage: + new Date(),
-                            message: msgText,
-                            latestMessageSender: firebase.auth().currentUser.email,
-                            groupChat: false,
-                            profilePic: firebase.auth().currentUser.photoURL
-                        }).then(function () {
-                            resetMaterialTextfield(messageInputElement);
-                            toggleButton();
-
-                            firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid + "/messages").push({
-                                type: "text",
-                                content: msgText,
-                                sender: firebase.auth().currentUser.email,
-                                timestamp: + new Date()
-                            });
-                        });
-                    }
-                });
+                        }
+                    });
+                })
             }
 
-            else{
-                console.log("grupni chat");
-                firebase.database().ref("chats/"+$("#contact-name").text()).set({
-                    latestMessage:+ new Date(),
+            else {
+                firebase.database().ref("chats/" + $("#contact-name").text()).update({
+                    latestMessage: + new Date(),
                     latestMessageSender: firebase.auth().currentUser.email,
                     latestMessage: msgText,
                     profilePic: firebase.auth().currentUser.email,
-                }).then(function(){
-                    firebase.database().ref("chats/"+$("#contact-name").text()+"/messages").push({
+                }).then(function () {
+                    resetMaterialTextfield(messageInputElement);
+                    toggleButton();
+
+                    firebase.database().ref("chats/" + $("#contact-name").text() + "/messages").push({
                         content: msgText,
                         sender: firebase.auth().currentUser.email,
-                        type:"text",
+                        type: "text",
                         profilePic: firebase.auth().currentUser.photoURL,
 
                     })
                 });
             }
-
-
         });
         return;
     }
 }
 
+function saveImageMessage(file) {
+
+    firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("value", function (snapshot) {
+        if (snapshot.exists()) {
+            firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).once("child_added", function (snapshot) {
+                var secondUserUid = snapshot.val().uid;
+                firebase.database().ref("chats").once("value").then(function (snapshot) {
+                    if (snapshot.hasChild(firebase.auth().currentUser.uid + "_" + secondUserUid)) {
+                        firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid).update({
+                            participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
+                            latestMessage: + new Date(),
+                            message: "Image",
+                            sender: firebase.auth().currentUser.email,
+                            groupChat: false,
+                            type: "image"
+                        }).then(function () {
+
+                            firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid + "/messages").push({
+                                type: "text",
+                                imageUrl: LOADING_IMAGE_URL,
+                                sender: firebase.auth().currentUser.email,
+                                timestamp: + new Date(),
+                                profilePic: firebase.auth().currentUser.photoURL
+                            }).then(function (messageRef) {
+                                var filePath = firebase.auth().currentUser.uid + '/' + messageRef.key + '/' + file.name;
+                                return firebase.storage().ref(filePath).put(file).then(function (fileSnapshot) {
+                                    // Generate a public URL for the file.
+                                    return fileSnapshot.ref.getDownloadURL().then((url) => {
+                                        // Update the chat message placeholder with the image's URL.
+                                        return messageRef.update({
+                                            imageUrl: url,
+                                            storageUri: fileSnapshot.metadata.fullPath
+                                        });
+                                    });
+                                });
+                            });
+                        });
+
+                    }
+                    else if(snapshot.hasChild(secondUserUid + "_" + firebase.auth().currentUser.uid)){
+                        firebase.database().ref("chats/" + secondUserUid + "_" + firebase.auth().currentUser.uid).update({
+                            participants: [ $("#contact-name").text(), firebase.auth().currentUser.email],
+                            latestMessage: + new Date(),
+                            message: "Image",
+                            sender: firebase.auth().currentUser.email,
+                            groupChat: false,
+                            type: "image"
+                        }).then(function () {
+                            firebase.database().ref("chats/" + secondUserUid + "_" + firebase.auth().currentUser.uid + "/messages").push({
+                                type: "text",
+                                imageUrl: LOADING_IMAGE_URL,
+                                sender: firebase.auth().currentUser.email,
+                                timestamp: + new Date(),
+                                profilePic: firebase.auth().currentUser.photoURL
+                            }).then(function (messageRef) {
+                                var filePath = firebase.auth().currentUser.uid + '/' + messageRef.key + '/' + file.name;
+                                return firebase.storage().ref(filePath).put(file).then(function (fileSnapshot) {
+                                    // Generate a public URL for the file.
+                                    return fileSnapshot.ref.getDownloadURL().then((url) => {
+                                        // Update the chat message placeholder with the image's URL.
+                                        return messageRef.update({
+                                            imageUrl: url,
+                                            storageUri: fileSnapshot.metadata.fullPath
+                                        });
+                                    });
+                                });
+                            });
+                        });
+                    }
+                    else{
+                        firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
+                            participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
+                            latestMessage: + new Date(),
+                            message: "Image",
+                            sender: firebase.auth().currentUser.email,
+                            groupChat: false,
+                            type: "image"
+                        }).then(function () {
+
+                            firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid + "/messages").push({
+                                type: "text",
+                                imageUrl: LOADING_IMAGE_URL,
+                                sender: firebase.auth().currentUser.email,
+                                timestamp: + new Date(),
+                                profilePic: firebase.auth().currentUser.photoURL
+                            }).then(function (messageRef) {
+                                var filePath = firebase.auth().currentUser.uid + '/' + messageRef.key + '/' + file.name;
+                                return firebase.storage().ref(filePath).put(file).then(function (fileSnapshot) {
+                                    // Generate a public URL for the file.
+                                    return fileSnapshot.ref.getDownloadURL().then((url) => {
+                                        // Update the chat message placeholder with the image's URL.
+                                        return messageRef.update({
+                                            imageUrl: url,
+                                            storageUri: fileSnapshot.metadata.fullPath
+                                        });
+                                    });
+                                });
+                            });
+                        });
+                    }
+                });
+            })
+        }
+
+        else{
+            firebase.database().ref("chats/" + $("#contact-name").text()).update({
+                participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
+                latestMessage: + new Date(),
+                message: "Image",
+                sender: firebase.auth().currentUser.email,
+                groupChat: false,
+                type: "image"
+            }).then(function () {
+
+                firebase.database().ref("chats/" + $("#contact-name").text() + "/messages").push({
+                    type: "text",
+                    imageUrl: LOADING_IMAGE_URL,
+                    sender: firebase.auth().currentUser.email,
+                    timestamp: + new Date(),
+                    profilePic: firebase.auth().currentUser.photoURL
+                }).then(function (messageRef) {
+                    var filePath = firebase.auth().currentUser.uid + '/' + messageRef.key + '/' + file.name;
+                    return firebase.storage().ref(filePath).put(file).then(function (fileSnapshot) {
+                        // Generate a public URL for the file.
+                        return fileSnapshot.ref.getDownloadURL().then((url) => {
+                            // Update the chat message placeholder with the image's URL.
+                            return messageRef.update({
+                                imageUrl: url,
+                                storageUri: fileSnapshot.metadata.fullPath
+                            });
+                        });
+                    });
+                });
+            });
+        }
+
+
+        // // 1 - We add a message with a loading icon that will get updated with the shared image.
+        // firebase.database().ref('/messages/').push({
+        //     name: getUserName(),
+        //     imageUrl: LOADING_IMAGE_URL,
+        //     profilePicUrl: getProfilePicUrl()
+        // }).then(function (messageRef) {
+        //     // 2 - Upload the image to Cloud Storage.
+        //     var filePath = firebase.auth().currentUser.uid + '/' + messageRef.key + '/' + file.name;
+        //     return firebase.storage().ref(filePath).put(file).then(function (fileSnapshot) {
+        //         // 3 - Generate a public URL for the file.
+        //         return fileSnapshot.ref.getDownloadURL().then((url) => {
+        //             // 4 - Update the chat message placeholder with the image's URL.
+        //             return messageRef.update({
+        //                 imageUrl: url,
+        //                 storageUri: fileSnapshot.metadata.fullPath
+        //             });
+        //         });
+        //     });
+        // }).catch(function (error) {
+        //     console.error('There was an error uploading a file to Cloud Storage:', error);
+        // });
+    });
+};
+
+//B.Š. - first load user's group chats asynchronously, and only when it's done load the rest of the contacts list
 window.onload = function () {
     initGroupsList().then(function () {
         initContactsList();
@@ -570,17 +727,8 @@ window.onload = function () {
 
 function test() {
 
-    firebase.database().ref("groups").on("value", function (snap) {
-        // console.log(snap.val());
-        snap.forEach((a) => {
-            a.val().participants.forEach((p) => {
-                if (p == firebase.auth().currentUser.email) {
-                    groups.push(a.key);
-                }
-            });
-        });
-        console.log(groups[0]);
-    });
-
+    return;
 }
+
+
 
