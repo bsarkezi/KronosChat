@@ -555,7 +555,7 @@ function saveMessage(msgText) {
 }
 
 function saveImageMessage(file) {
-
+    
     firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("value", function (snapshot) {
         if (snapshot.exists()) {
             firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).once("child_added", function (snapshot) {
@@ -689,29 +689,6 @@ function saveImageMessage(file) {
                 });
             });
         }
-
-
-        // // 1 - We add a message with a loading icon that will get updated with the shared image.
-        // firebase.database().ref('/messages/').push({
-        //     name: getUserName(),
-        //     imageUrl: LOADING_IMAGE_URL,
-        //     profilePicUrl: getProfilePicUrl()
-        // }).then(function (messageRef) {
-        //     // 2 - Upload the image to Cloud Storage.
-        //     var filePath = firebase.auth().currentUser.uid + '/' + messageRef.key + '/' + file.name;
-        //     return firebase.storage().ref(filePath).put(file).then(function (fileSnapshot) {
-        //         // 3 - Generate a public URL for the file.
-        //         return fileSnapshot.ref.getDownloadURL().then((url) => {
-        //             // 4 - Update the chat message placeholder with the image's URL.
-        //             return messageRef.update({
-        //                 imageUrl: url,
-        //                 storageUri: fileSnapshot.metadata.fullPath
-        //             });
-        //         });
-        //     });
-        // }).catch(function (error) {
-        //     console.error('There was an error uploading a file to Cloud Storage:', error);
-        // });
     });
 };
 
