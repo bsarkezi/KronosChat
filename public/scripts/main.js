@@ -174,8 +174,7 @@ function onMessageFormSubmit(e) {
 function authStateObserver(user) {
     if (user) { // User is signed in!
 
-        // console.log(firebase.auth().currentUser.uid);
-
+        //B.Š. - initialize contacts only when the auth controller is initialised and user is logged in
         initGroupsList().then(function(){
             initContactsList();
         })
@@ -379,39 +378,39 @@ async function initGroupsList() {
 
 function initContactsList() {
 
-    var a = [];
-    //contactsListElement.innerHTML="";
+    var contacts = [];
 
 
     firebase.database().ref("latest/"+firebase.auth().currentUser.uid).orderByChild("latestMessageTimestamp").once("value",function(snap){
         snap.forEach(function(childSnap){
-            a.push(childSnap.val());
+            contacts.push(childSnap.val());
         });      
         groups.forEach(function(group){
             var temp = group;
             temp.convoPartner = group.displayName;
             //delete temp.displayName;
-            a.push(temp);
+            contacts.push(temp);
 
         })
     }).then(function(){
-        for(var i = 0; i < a.length - 1 ;i++){
+        for(var i = 0; i < contacts.length - 1 ;i++){
             for(var j = 1; j <= i; j++ ){
-                if(a[j-1].latestMessageTimestamp<a[i].latestMessageTimestamp){
-                    var temp = a[j-1];
-                    a[j-1] = a[j];
-                    a[j]= temp;
+                if(contacts[j-1].latestMessageTimestamp<contacts[i].latestMessageTimestamp){
+                    var temp = contacts[j-1];
+                    contacts[j-1] = contacts[j];
+                    contacts[j]= temp;
                 }
             }
         }
+        console.log(contacts);
 
         contactsListElement.innerHTML="";
-        for (var i = 0; i < a.length; i++) {
-            var contactsToAdd = "<p><b>" + a[i].convoPartner + "</b></p><p>"+a[i].latestMessage+"</p>";
-            var aa = document.createElement("div");
-            aa.className = "contact"
-            aa.innerHTML = contactsToAdd;
-            document.getElementById("contacts").appendChild(aa);
+        for (var i = 0; i < contacts.length; i++) {
+            var contactsToAdd = "<p><b>" + contacts[i].convoPartner + "</b></p><p>"+contacts[i].latestMessage+"</p>";
+            var contactDiv = document.createElement("div");
+            contactDiv.className = "contact"
+            contactDiv.innerHTML = contactsToAdd;
+            document.getElementById("contacts").appendChild(contactDiv);
         }
 
         $(".contact").click(function () {
@@ -458,10 +457,11 @@ function loadMessages() {
 
     messageListElement.innerHTML = '<span id="message-filler"></span>';
 
+    //B.Š. - callback function called every time message data is modified and returned from DB 
     var msgCallback = function (snap) {
         var data = snap.val();
         console.log(data);
-        initContactsList();
+        initContactsList();  // B.Š. - refresh contacts list when a message is sent or received. 
         displayMessage(snap.key, data.sender, data.content, data.profilePic, data.imageUrl);
     };
 
