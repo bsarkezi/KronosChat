@@ -175,7 +175,7 @@ function authStateObserver(user) {
     if (user) { // User is signed in!
 
         //B.Š. - initialize contacts only when the auth controller is initialised and user is logged in
-        initGroupsList().then(function(){
+        initGroupsList().then(function () {
             initContactsList();
         })
 
@@ -201,8 +201,8 @@ function authStateObserver(user) {
 
     } else { // User is signed out!
 
-        contactsListElement.innerHTML="";
-        
+        contactsListElement.innerHTML = "";
+
         // Hide user's profile and sign-out button.
         userNameElement.setAttribute('hidden', 'true');
         userPicElement.setAttribute('hidden', 'true');
@@ -347,6 +347,7 @@ initFirebaseAuth();
 //TODO: naci drugi nacin doohvacanja grupa u kojima je korisnik
 
 var groups = [];
+var a = [];
 
 function snapshotToArray(snapshot) {
     var returnArr = [];
@@ -381,32 +382,24 @@ function initContactsList() {
     var contacts = [];
 
 
-    firebase.database().ref("latest/"+firebase.auth().currentUser.uid).orderByChild("latestMessageTimestamp").once("value",function(snap){
-        snap.forEach(function(childSnap){
+    firebase.database().ref("latest/" + firebase.auth().currentUser.uid).orderByChild("latestMessageTimestamp").once("value", function (snap) {
+        snap.forEach(function (childSnap) {
             contacts.push(childSnap.val());
-        });      
-        groups.forEach(function(group){
+        });
+        groups.forEach(function (group) {
             var temp = group;
             temp.convoPartner = group.displayName;
             //delete temp.displayName;
             contacts.push(temp);
 
         })
-    }).then(function(){
-        for(var i = 0; i < contacts.length - 1 ;i++){
-            for(var j = 1; j <= i; j++ ){
-                if(contacts[j-1].latestMessageTimestamp<contacts[i].latestMessageTimestamp){
-                    var temp = contacts[j-1];
-                    contacts[j-1] = contacts[j];
-                    contacts[j]= temp;
-                }
-            }
-        }
-        console.log(contacts);
+    }).then(function () {
 
-        contactsListElement.innerHTML="";
+        contacts = sortContacts(contacts);
+
+        contactsListElement.innerHTML = "";
         for (var i = 0; i < contacts.length; i++) {
-            var contactsToAdd = "<p><b>" + contacts[i].convoPartner + "</b></p><p>"+contacts[i].latestMessage+"</p>";
+            var contactsToAdd = "<p><b>" + contacts[i].convoPartner + "</b></p><p>" + contacts[i].latestMessage + "</p>";
             var contactDiv = document.createElement("div");
             contactDiv.className = "contact"
             contactDiv.innerHTML = contactsToAdd;
@@ -419,37 +412,6 @@ function initContactsList() {
             loadMessages();
         });
     });
-
-    // contactsListElement.innerHTML="";
-
-    // firebase.database().ref("users/").once("value").then(function (snapshot) {
-    //     var usersArray = snapshotToArray(snapshot);
-
-    //     //B.Š. - removal of currently logged in user from contacts list
-    //     for (var i = 0; i < usersArray.length; i++) {
-    //         if (usersArray[i].email == firebase.auth().currentUser.email) {
-    //             usersArray.splice(i, 1);
-    //         }
-    //     }
-
-    //     groups.forEach(function (g) {
-    //         usersArray.push(g);
-    //     })
-
-    //     for (var i = 0; i < usersArray.length; i++) {
-    //         var contactsToAdd = "<p><b>" + usersArray[i].displayName + "</b></p><p>Lorem ipsum dolor sit amet</p>";
-    //         var aa = document.createElement("div");
-    //         aa.className = "contact"
-    //         aa.innerHTML = contactsToAdd;
-    //         document.getElementById("contacts").appendChild(aa);
-    //     }
-    //     $(".contact").click(function () {
-    //         $("#contact-name").removeAttr("hidden");
-    //         $("#contact-name").text($(this).find("p:first").text());
-    //         loadMessages();
-    //     });
-
-    // })
 }
 
 // Loads chat messages history and listens for upcoming ones.
@@ -504,7 +466,7 @@ function saveMessage(msgText) {
 
     else {
         firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("value", function (snapshot) {
-            
+
             //INDIVIDUAL CHATS
             if (snapshot.exists()) {
                 firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).once("child_added", function (snapshot) {
@@ -531,21 +493,21 @@ function saveMessage(msgText) {
                                     profilePic: firebase.auth().currentUser.photoURL
                                 });
                             });
-                            firebase.database().ref("latest/" + firebase.auth().currentUser.uid +"/"+ firebase.auth().currentUser.uid + "_" + secondUserUid).set({
-                                latestMessage:msgText,
+                            firebase.database().ref("latest/" + firebase.auth().currentUser.uid + "/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
+                                latestMessage: msgText,
                                 latestMessageSender: firebase.auth().currentUser.email,
                                 latestMessageTimestamp: + new Date(),
                                 latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
                                 convoPartner: $("#contact-name").text(),
-                                type:"text"
+                                type: "text"
                             });
-                            firebase.database().ref("latest/" + secondUserUid +"/"+ firebase.auth().currentUser.uid + "_" + secondUserUid).set({
-                                latestMessage:msgText,
+                            firebase.database().ref("latest/" + secondUserUid + "/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
+                                latestMessage: msgText,
                                 latestMessageSender: firebase.auth().currentUser.email,
                                 latestMessageTimestamp: + new Date(),
                                 latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
                                 convoPartner: firebase.auth().currentUser.email,
-                                type:"text"
+                                type: "text"
                             });
 
                         }
@@ -567,21 +529,21 @@ function saveMessage(msgText) {
                                     timestamp: + new Date()
                                 });
                             });
-                            firebase.database().ref("latest/" + firebase.auth().currentUser.uid +"/"+ secondUserUid + "_" + firebase.auth().currentUser.uid).set({
-                                latestMessage:msgText,
+                            firebase.database().ref("latest/" + firebase.auth().currentUser.uid + "/" + secondUserUid + "_" + firebase.auth().currentUser.uid).set({
+                                latestMessage: msgText,
                                 latestMessageSender: firebase.auth().currentUser.email,
                                 latestMessageTimestamp: + new Date(),
                                 latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
                                 convoPartner: $("#contact-name").text(),
-                                type:"text"
+                                type: "text"
                             });
-                            firebase.database().ref("latest/" + secondUserUid +"/"+ secondUserUid + "_" + firebase.auth().currentUser.uid).set({
-                                latestMessage:msgText,
+                            firebase.database().ref("latest/" + secondUserUid + "/" + secondUserUid + "_" + firebase.auth().currentUser.uid).set({
+                                latestMessage: msgText,
                                 latestMessageSender: firebase.auth().currentUser.email,
                                 latestMessageTimestamp: + new Date(),
                                 latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
                                 convoPartner: firebase.auth().currentUser.email,
-                                type:"text"
+                                type: "text"
                             });
                         }
                         else {
@@ -603,21 +565,21 @@ function saveMessage(msgText) {
                                     timestamp: + new Date()
                                 });
                             });
-                            firebase.database().ref("latest/" + firebase.auth().currentUser.uid +"/"+ firebase.auth().currentUser.uid + "_" + secondUserUid).set({
-                                latestMessage:msgText,
+                            firebase.database().ref("latest/" + firebase.auth().currentUser.uid + "/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
+                                latestMessage: msgText,
                                 latestMessageSender: firebase.auth().currentUser.email,
                                 latestMessageTimestamp: + new Date(),
                                 latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
                                 convoPartner: $("#contact-name").text(),
-                                type:"text"
+                                type: "text"
                             });
-                            firebase.database().ref("latest/" + secondUserUid +"/"+ firebase.auth().currentUser.uid + "_" + secondUserUid).set({
-                                latestMessage:msgText,
+                            firebase.database().ref("latest/" + secondUserUid + "/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
+                                latestMessage: msgText,
                                 latestMessageSender: firebase.auth().currentUser.email,
                                 latestMessageTimestamp: + new Date(),
                                 latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
                                 convoPartner: firebase.auth().currentUser.email,
-                                type:"text"
+                                type: "text"
                             });
                         }
                     });
@@ -657,7 +619,7 @@ function saveMessage(msgText) {
                 // staviti kao trigger kada se updatea grupa s najnovijim porukama ili kada dode poruka u grupu
 
                 firebase.database().ref("latest/" + $("#contact-name").text()).update({
-                    latestMessage:msgText,
+                    latestMessage: msgText,
                     latestMessageSender: firebase.auth().currentUser.email,
                     latestMessageTimestamp: + new Date(),
                     latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
@@ -670,7 +632,7 @@ function saveMessage(msgText) {
 }
 
 function saveImageMessage(file) {
-    
+
     firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("value", function (snapshot) {
         if (snapshot.exists()) {
             firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).once("child_added", function (snapshot) {
@@ -701,22 +663,22 @@ function saveImageMessage(file) {
                                         return messageRef.update({
                                             imageUrl: url,
                                             storageUri: fileSnapshot.metadata.fullPath
-                                        }).then(function(){
-                                            firebase.database().ref("latest/" + firebase.auth().currentUser.uid +"/"+ firebase.auth().currentUser.uid + "_" + secondUserUid).set({
-                                                latestMessage:"",
+                                        }).then(function () {
+                                            firebase.database().ref("latest/" + firebase.auth().currentUser.uid + "/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
+                                                latestMessage: "",
                                                 latestMessageSender: firebase.auth().currentUser.email,
                                                 latestMessageTimestamp: + new Date(),
                                                 latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
                                                 convoPartner: $("#contact-name").text(),
                                                 type: "image"
                                             });
-                                            firebase.database().ref("latest/" + secondUserUid +"/"+ firebase.auth().currentUser.uid + "_" + secondUserUid).set({
-                                                latestMessage:"",
+                                            firebase.database().ref("latest/" + secondUserUid + "/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
+                                                latestMessage: "",
                                                 latestMessageSender: firebase.auth().currentUser.email,
                                                 latestMessageTimestamp: + new Date(),
                                                 latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
                                                 convoPartner: firebase.auth().currentUser.email,
-                                                type:"image"
+                                                type: "image"
                                             });
                                         });
                                     });
@@ -725,9 +687,9 @@ function saveImageMessage(file) {
                         });
 
                     }
-                    else if(snapshot.hasChild(secondUserUid + "_" + firebase.auth().currentUser.uid)){
+                    else if (snapshot.hasChild(secondUserUid + "_" + firebase.auth().currentUser.uid)) {
                         firebase.database().ref("chats/" + secondUserUid + "_" + firebase.auth().currentUser.uid).update({
-                            participants: [ $("#contact-name").text(), firebase.auth().currentUser.email],
+                            participants: [$("#contact-name").text(), firebase.auth().currentUser.email],
                             latestMessage: + new Date(),
                             message: "Image",
                             sender: firebase.auth().currentUser.email,
@@ -749,22 +711,22 @@ function saveImageMessage(file) {
                                         return messageRef.update({
                                             imageUrl: url,
                                             storageUri: fileSnapshot.metadata.fullPath
-                                        }).then(function(){
-                                            firebase.database().ref("latest/" + firebase.auth().currentUser.uid +"/"+ firebase.auth().currentUser.uid + "_" + secondUserUid).set({
-                                                latestMessage:"",
+                                        }).then(function () {
+                                            firebase.database().ref("latest/" + firebase.auth().currentUser.uid + "/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
+                                                latestMessage: "",
                                                 latestMessageSender: firebase.auth().currentUser.email,
                                                 latestMessageTimestamp: + new Date(),
                                                 latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
                                                 convoPartner: $("#contact-name").text(),
                                                 type: "image"
                                             });
-                                            firebase.database().ref("latest/" + secondUserUid +"/"+ firebase.auth().currentUser.uid + "_" + secondUserUid).set({
-                                                latestMessage:"",
+                                            firebase.database().ref("latest/" + secondUserUid + "/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
+                                                latestMessage: "",
                                                 latestMessageSender: firebase.auth().currentUser.email,
                                                 latestMessageTimestamp: + new Date(),
                                                 latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
                                                 convoPartner: firebase.auth().currentUser.email,
-                                                type:"image"
+                                                type: "image"
                                             });
                                         });
                                     });
@@ -772,7 +734,7 @@ function saveImageMessage(file) {
                             });
                         });
                     }
-                    else{
+                    else {
                         firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
                             participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
                             latestMessage: + new Date(),
@@ -797,22 +759,22 @@ function saveImageMessage(file) {
                                         return messageRef.update({
                                             imageUrl: url,
                                             storageUri: fileSnapshot.metadata.fullPath
-                                        }).then(function(){
-                                            firebase.database().ref("latest/" + firebase.auth().currentUser.uid +"/"+ firebase.auth().currentUser.uid + "_" + secondUserUid).set({
-                                                latestMessage:"",
+                                        }).then(function () {
+                                            firebase.database().ref("latest/" + firebase.auth().currentUser.uid + "/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
+                                                latestMessage: "",
                                                 latestMessageSender: firebase.auth().currentUser.email,
                                                 latestMessageTimestamp: + new Date(),
                                                 latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
                                                 convoPartner: $("#contact-name").text(),
                                                 type: "image"
                                             });
-                                            firebase.database().ref("latest/" + secondUserUid +"/"+ firebase.auth().currentUser.uid + "_" + secondUserUid).set({
-                                                latestMessage:"",
+                                            firebase.database().ref("latest/" + secondUserUid + "/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
+                                                latestMessage: "",
                                                 latestMessageSender: firebase.auth().currentUser.email,
                                                 latestMessageTimestamp: + new Date(),
                                                 latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
                                                 convoPartner: firebase.auth().currentUser.email,
-                                                type:"image"
+                                                type: "image"
                                             });
                                         });
                                     });
@@ -824,7 +786,7 @@ function saveImageMessage(file) {
             })
         }
 
-        else{
+        else {
             firebase.database().ref("chats/" + $("#contact-name").text()).update({
                 participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
                 latestMessage: + new Date(),
@@ -849,9 +811,9 @@ function saveImageMessage(file) {
                             return messageRef.update({
                                 imageUrl: url,
                                 storageUri: fileSnapshot.metadata.fullPath
-                            }).then(function(){
+                            }).then(function () {
                                 firebase.database().ref("latest/" + $("#contact-name").text()).update({
-                                    latestMessage:"",
+                                    latestMessage: "",
                                     latestMessageSender: firebase.auth().currentUser.email,
                                     latestMessageTimestamp: + new Date(),
                                     latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
@@ -866,70 +828,28 @@ function saveImageMessage(file) {
     });
 };
 
-//B.Š. - first load user's group chats asynchronously, and only when it's done load the rest of the contacts list
-window.onload = function () {
-    
-    
 
-};
-
-// initGroupsList().then(function () {
-//     initContactsList();
-// });
-
-// $(document).ready(function(){
-//     initGroupsList().then(function(){
-//         initContactsList()
-//     });
-// })
+function sortContacts(array) {
+    var minIndex, temp
+        // len = array.length;
+    for (var i = 0; i < array.length; i++) {
+        minIndex = i;
+        for (var j = i + 1; j < array.length; j++) {
+            if (array[j].latestMessageTimestamp > array[minIndex].latestMessageTimestamp) {
+                minIndex = j;
+            }
+        }
+        temp = array[i];
+        array[i] = array[minIndex];
+        array[minIndex] = temp;
+    }
+    return array;
+}
 
 //TESTING AN' SHIT
 
 function test() {
-    var a = [];
-    //contactsListElement.innerHTML="";
 
-
-    firebase.database().ref("latest/"+firebase.auth().currentUser.uid).orderByChild("latestMessageTimestamp").once("value",function(snap){
-        snap.forEach(function(childSnap){
-            a.push(childSnap.val());
-        });      
-        groups.forEach(function(group){
-            var temp = group;
-            temp.convoPartner = group.displayName;
-            //delete temp.displayName;
-            a.push(temp);
-
-        })
-    }).then(function(){
-        for(var i = 0; i < a.length - 1 ;i++){
-            for(var j = 1; j <= i; j++ ){
-                if(a[j-1].latestMessageTimestamp<a[i].latestMessageTimestamp){
-                    var temp = a[j-1];
-                    a[j-1] = a[j];
-                    a[j]= temp;
-                }
-            }
-        }
-
-        console.log(a);
-        contactsListElement.innerHTML="";
-        for (var i = 0; i < a.length; i++) {
-            var contactsToAdd = "<p><b>" + a[i].convoPartner + "</b></p><p>"+a[i].latestMessage+"</p>";
-            var aa = document.createElement("div");
-            aa.className = "contact"
-            aa.innerHTML = contactsToAdd;
-            document.getElementById("contacts").appendChild(aa);
-        }
-
-        $(".contact").click(function () {
-            $("#contact-name").removeAttr("hidden");
-            $("#contact-name").text($(this).find("p:first").text());
-            loadMessages();
-        });
-    });
-
-    return;
 }
 
 
