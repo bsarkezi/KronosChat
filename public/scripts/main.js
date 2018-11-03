@@ -258,6 +258,9 @@ function displayMessage(key, name, text, picUrl, imageUrl) {
         container.innerHTML = MESSAGE_TEMPLATE;
         div = container.firstChild;
         div.setAttribute('id', key);
+        if(name == firebase.auth().currentUser.email){
+            div.style.backgroundColor="#eaf2ff";
+        }
         messageListElement.appendChild(div);
     }
     if (picUrl) {
@@ -310,7 +313,7 @@ checkSetup();
 var messageListElement = document.getElementById('messages');
 var messageFormElement = document.getElementById('message-form');
 var messageInputElement = document.getElementById('message');
-var submitButtonElement = document.getElementById('submit');
+var submitButtonElement = document.getElementById('msg-submit-btn');
 var imageButtonElement = document.getElementById('submitImage');
 var imageFormElement = document.getElementById('image-form');
 var mediaCaptureElement = document.getElementById('mediaCapture');
@@ -422,7 +425,7 @@ function loadMessages() {
     //B.Š. - callback function called every time message data is modified and returned from DB 
     var msgCallback = function (snap) {
         var data = snap.val();
-        console.log(data);
+        //console.log(data);
         initContactsList();  // B.Š. - refresh contacts list when a message is sent or received. 
         displayMessage(snap.key, data.sender, data.content, data.profilePic, data.imageUrl);
     };
