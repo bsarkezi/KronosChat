@@ -267,6 +267,9 @@ function displayMessage(key, name, text, picUrl, imageUrl) {
         div.querySelector('.pic').style.backgroundImage = 'url(' + picUrl + ')';
     }
     div.querySelector('.name').textContent = name;
+    if(name == firebase.auth().currentUser.email){
+        div.style.backgroundColor="#E8F3FF";
+    }
     var messageElement = div.querySelector('.message');
     if (text) { // If the message is text.
         messageElement.textContent = text;
