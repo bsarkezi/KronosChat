@@ -74,16 +74,24 @@ body{
   width: calc(100% - 40px);
   padding: 5px 0 5px 10px;
 }
-.message-container .name {
-  display: inline-block;
-  width: 100%;
-  padding-left: 40px;
-  color: #bbb;
-  font-style: italic;
-  font-size: 12px;
-  box-sizing: border-box;
+.message-container .name .date{
+  display: inline-block !important;
+  width: 100% !important;
+  padding-left: 40px !important;
+  color: #bbb !important;
+  font-style: italic !important;
+  font-size: 12px !important;
+  box-sizing: border-box !important;
+}
+
+.name .date {
+  color: gray !important;
+  font-style: italic !important;
+  font-size: 0.9em !important;
+  margin-left: 1em !important;
 }
 
 .message>img{
   max-width: 90%;
 }
+

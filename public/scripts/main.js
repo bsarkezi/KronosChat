@@ -243,15 +243,17 @@ var MESSAGE_TEMPLATE =
     '<div class="spacing"><div class="pic"></div></div>' +
     '<div class="message"></div>' +
     '<div class="name"></div>' +
+    //'<div class="date"></div>' +
     '</div>';
 
 // A loading image URL.
 var LOADING_IMAGE_URL = 'https://www.google.com/images/spin-32.gif?a';
 
 // Displays a Message in the UI.
-function displayMessage(key, name, text, picUrl, imageUrl) {
+function displayMessage(key, name, text, timestamp, picUrl, imageUrl) {
     // var div = document.getElementById(key);
     var div = document.getElementById(key);
+    var date = new Date(timestamp);
     // If an element for that message does not exist yet we create it.
     if (!div) {
         var container = document.createElement('div');
@@ -267,8 +269,9 @@ function displayMessage(key, name, text, picUrl, imageUrl) {
         div.querySelector('.pic').style.backgroundImage = 'url(' + picUrl + ')';
     }
     div.querySelector('.name').textContent = name;
+    //div.querySelector('.date').textContent = date.getDate() + " " + months[date.getMonth()]+" "+date.getFullYear()+" "+ date.getHours()+":"+date.getMinutes();
     if(name == firebase.auth().currentUser.email){
-        div.style.backgroundColor="#E8F3FF";
+        div.style.backgroundColor="#EAF2FF";
     }
     var messageElement = div.querySelector('.message');
     if (text) { // If the message is text.
@@ -354,6 +357,7 @@ initFirebaseAuth();
 
 var groups = [];
 var a = [];
+var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
 function snapshotToArray(snapshot) {
     var returnArr = [];
@@ -430,7 +434,7 @@ function loadMessages() {
         var data = snap.val();
         //console.log(data);
         initContactsList();  // B.Š. - refresh contacts list when a message is sent or received. 
-        displayMessage(snap.key, data.sender, data.content, data.profilePic, data.imageUrl);
+        displayMessage(snap.key, data.sender, data.content, data.timestamp, data.profilePic, data.imageUrl);
     };
 
     firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("value", function (snapshot) {
