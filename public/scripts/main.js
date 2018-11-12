@@ -409,16 +409,17 @@ function initContactsList() {
 
         contactsListElement.innerHTML = "";
         for (var i = 0; i < contacts.length; i++) {
-            var contactsToAdd = "<p><b>" + contacts[i].convoPartner + "</b></p><p>" + contacts[i].latestMessage + "</p>";
+            //var contactsToAdd = "<p><b>" + contacts[i].convoPartner + "</b></p><p>" + contacts[i].latestMessage + "</p>";
+            var contactsToAdd = "<div class='col-sm-3'><img src ="+ contacts[i].latestMessageSenderProfilePic + " /></div><div class = 'col-sm-9'<p><b>"+contacts[i].convoPartner+"</b></p><p>"+contacts[i].latestMessage+"</p></div>";
             var contactDiv = document.createElement("div");
-            contactDiv.className = "contact"
+            contactDiv.className = "contact row"
             contactDiv.innerHTML = contactsToAdd;
             document.getElementById("contacts").appendChild(contactDiv);
         }
 
         $(".contact").click(function () {
             $("#contact-name").removeAttr("hidden");
-            $("#contact-name").text($(this).find("p:first").text());
+            $("#contact-name").text($(this).find("b:first").text());
             loadMessages();
         });
     });
@@ -602,7 +603,8 @@ function saveMessage(msgText) {
                     latestMessage: + new Date(),
                     latestMessageSender: firebase.auth().currentUser.email,
                     latestMessage: msgText,
-                    profilePic: firebase.auth().currentUser.email,
+                    // profilePic: firebase.auth().currentUser.profilePicUrl,   
+                    profilePic: "https://cdn-images-1.medium.com/max/1200/1*MccriYX-ciBniUzRKAUsAw.png", //temp profilna za grupe
                 }).then(function () {
                     resetMaterialTextfield(messageInputElement);
                     toggleButton();

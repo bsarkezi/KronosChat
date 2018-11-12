@@ -2,7 +2,7 @@
   float: right;
 }
 
-main{
+main>section{
   max-height: 80%;
 }
 
@@ -34,13 +34,14 @@ body{
   vertical-align: middle; 
 }
 
-#messages-card{
+#messages{
   overflow-y: scroll;
 }
 
 .contact{
   color: #757575;
   border-bottom: 1px solid #706a6a;
+  padding-top: 3%;
 }
 
 .message-container:first-of-type {
@@ -95,3 +96,34 @@ body{
   max-width: 90%;
 }
 
+#user-container{
+  padding-right: 3%;
+}
+
+.contact>div>img{
+  width: 65%;
+}
+
+body{
+  transform: scale(0.95);
+  transform-origin: 0 0;
+}
+
+@media screen and (max-width: 575px){
+  
+  .contact>div{
+    float: left;
+  }
+  .contact>div:nth-child(1){
+    width:30%;
+  }
+  .contact>div:nth-child(2){
+    width: 70%;
+  }
+}
+
+@media screen and (min-width: 768px) and (max-width: 991px){
+  .contact>div>img{
+    width: 120%;
+  }
+}
