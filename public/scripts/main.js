@@ -260,8 +260,8 @@ function displayMessage(key, name, text, timestamp, picUrl, imageUrl) {
         container.innerHTML = MESSAGE_TEMPLATE;
         div = container.firstChild;
         div.setAttribute('id', key);
-        if(name == firebase.auth().currentUser.email){
-            div.style.backgroundColor="#eaf2ff";
+        if (name == firebase.auth().currentUser.email) {
+            div.style.backgroundColor = "#eaf2ff";
         }
         messageListElement.appendChild(div);
     }
@@ -270,8 +270,8 @@ function displayMessage(key, name, text, timestamp, picUrl, imageUrl) {
     }
     div.querySelector('.name').textContent = name;
     //div.querySelector('.date').textContent = date.getDate() + " " + months[date.getMonth()]+" "+date.getFullYear()+" "+ date.getHours()+":"+date.getMinutes();
-    if(name == firebase.auth().currentUser.email){
-        div.style.backgroundColor="#EAF2FF";
+    if (name == firebase.auth().currentUser.email) {
+        div.style.backgroundColor = "#EAF2FF";
     }
     var messageElement = div.querySelector('.message');
     if (text) { // If the message is text.
@@ -357,7 +357,7 @@ initFirebaseAuth();
 
 var groups = [];
 var a = [];
-var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 function snapshotToArray(snapshot) {
     var returnArr = [];
@@ -410,7 +410,7 @@ function initContactsList() {
         contactsListElement.innerHTML = "";
         for (var i = 0; i < contacts.length; i++) {
             //var contactsToAdd = "<p><b>" + contacts[i].convoPartner + "</b></p><p>" + contacts[i].latestMessage + "</p>";
-            var contactsToAdd = "<div class='col-sm-3'><img src ="+ contacts[i].latestMessageSenderProfilePic + " /></div><div class = 'col-sm-9'<p><b>"+contacts[i].convoPartner+"</b></p><p>"+contacts[i].latestMessage+"</p></div>";
+            var contactsToAdd = "<div class='col-sm-3'><img src =" + contacts[i].latestMessageSenderProfilePic + " /></div><div class = 'col-sm-9'<p><b>" + contacts[i].convoPartner + "</b></p><p>" + contacts[i].latestMessage + "</p></div>";
             var contactDiv = document.createElement("div");
             contactDiv.className = "contact row"
             contactDiv.innerHTML = contactsToAdd;
@@ -843,7 +843,7 @@ function saveImageMessage(file) {
 
 function sortContacts(array) {
     var minIndex, temp
-        // len = array.length;
+    // len = array.length;
     for (var i = 0; i < array.length; i++) {
         minIndex = i;
         for (var j = i + 1; j < array.length; j++) {
@@ -858,11 +858,31 @@ function sortContacts(array) {
     return array;
 }
 
-//TESTING AN' SHIT
-
-function test() {
-
+function searchUsers(searchString){
+    $("#search-result").empty();
+    if(searchString != ""){
+        firebase.database().ref("users/").orderByChild("email").startAt(searchString).endAt(searchString + "\uf8ff").once("value", function (snap) {
+            if (snap.exists()) {
+                snap.forEach(function (data) {
+                    $("#search-result").append("<option value='"+data.val().displayName+"'></option>")
+                });     
+                       
+            }
+        });
+    }
 }
 
+$("#user-search").bind("keyup", function(event){
+    if(event.which == 13 && $("#search-result option").length == 1){
+        //automatically add user to convo list
+        console.log("dodaj korisnika");
+    }
+    $("#search-result").empty();
+    searchUsers($(this).val());
+})
 
+//TESTING AN' SHIT
 
+function test(searchString) {
+    
+}
