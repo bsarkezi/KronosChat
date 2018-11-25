@@ -869,28 +869,80 @@ function sortContacts(array) {
     return array;
 }
 
-function searchUsers(searchString){
+function searchUsers(searchString, type){
     $("#search-result").empty();
-    if(searchString != ""){
-        firebase.database().ref("users/").orderByChild("nickname").startAt(searchString).endAt(searchString + "\uf8ff").once("value", function (snap) {
-            if (snap.exists()) {
-                snap.forEach(function (data) {
-                    $("#search-result").append("<option value='"+data.val().nickname+"'></option>")
-                });     
-                       
-            }
-        });
+    $("#group-user-search").empty();
+    if(type == "contact"){
+        if(searchString != ""){
+            firebase.database().ref("users/").orderByChild("nickname").startAt(searchString).endAt(searchString + "\uf8ff").once("value", function (snap) {
+                if (snap.exists()) {
+                    snap.forEach(function (data) {
+                        $("#search-result").append("<option value='"+data.val().nickname+"'></option>")
+                    });     
+                           
+                }
+            });
+        }
     }
+    else if(type == "group"){
+        if(searchString != ""){
+            firebase.database().ref("users/").orderByChild("nickname").startAt(searchString).endAt(searchString + "\uf8ff").once("value", function (snap) {
+                if (snap.exists()) {
+                    snap.forEach(function (data) {
+                        $("#group-user-search").append("<option value='"+data.val().nickname+"'></option>")
+                    });     
+                           
+                }
+            });
+        }
+    }
+    
 }
 
+//B.Š. - search users for starting a chat with a single user
 $("#user-search").bind("keyup", function(event){
     if(event.which == 13 && $("#search-result option").length == 1){
-        //automatically add user to convo list
-        console.log("dodaj korisnika");
+        //$("#search-result option").val(); nesto...
+        console.log($("#search-result option").val());
+        //dodaj korisnika
     }
     $("#search-result").empty();
-    searchUsers($(this).val());
-})
+    searchUsers($(this).val(), "contact");
+});
+
+/*
+B.Š. - search users for adding to list of participants in group chat yet to be created, used in group
+       chat creation modal window
+
+Doesn't work if 'modal shown' event listener is assigned before window/page content is fully loaded
+*/
+window.onload = function(){
+    $("#group-create-modal").on("shown.bs.modal",function(e){
+        $("#group-member-input").val("");
+        $("#group-user-list").val("");
+        //$("#group-user-search").empty();
+        $("#group-member-input").bind("keyup", function(event){
+            if(event.which==13 && $("#group-user-search option").length == 1){
+                addToCreateGroupChatModalUserList($("#group-user-search option").val());
+            }
+            //$("#group-user-search").empty();
+            //console.log("lorem ipsum");
+            searchUsers($("#group-member-input").val(), "group");
+        });
+        $("#group-user-search option").click(function(){
+            console.log($(this.val()));
+        });
+    });
+
+
+
+    $("form").submit(function(event){
+        event.preventDefault();
+    });
+};
+
+
+
 
 function saveUsername(){
     $("#taken-username").attr("hidden", true);
@@ -926,8 +978,50 @@ $(document).keypress(function(event){
     if(event.which== 13 && ($("#username-modal").data('bs.modal') || {})._isShown){  //if #username-modal Bootstrap modal element is currently shown
         saveUsername();
     }
-})
+});
 
+//B.Š. - adds users to list of selected users in modal window for creating group chats
+function addToCreateGroupChatModalUserList(nickname){
+    let usrArray = [];
+    usrArray = $("#group-user-list").val().split('|||');
+    if(usrArray.indexOf(nickname)==-1){
+        usrArray.push(nickname);
+        $("#group-user-list").val(usrArray.join('|||'));
+    }
+    
+    
+    renderGroupUsersList();
+}
+
+function deleteFromCreateModalUserList(nickname){
+    let usrArray = $("#group-user-list").val().split('|||');
+    if(usrArray.indexOf(nickname) > -1){
+        usrArray.splice(usrArray.indexOf(nickname), 1);
+    }
+
+    $("#group-user-list").val(usrArray.join('|||'));
+    
+    renderGroupUsersList();
+}
+
+
+function renderGroupUsersList(){
+    $("#ul-user-list").empty();
+    let usrArray = $("#group-user-list").val().split('|||');
+    for(var i = 0; i<usrArray.length; i++){
+        if(usrArray[i] != ""){
+            let listItem = "<li class='list-group-item'><div class='row'><div class='col-xs-2'><a href='#' class='mr-2' onclick='deleteFromCreateModalUserList(&quot;"+usrArray[i]+"&quot;)'><i class='fas fa-times'></i></a></i></div><div class='col-xs-10'><p class='pb-1'>"+usrArray[i]+"</p></div></div></li>";
+            $("#ul-user-list").append(listItem);
+        }
+        
+    }
+}
+
+function createGroupChat(){
+    if(confirm("Are you sure?")){
+        $('#group-create-modal').modal('hide');
+    }
+}
 
 //TESTING AN' SHIT
 

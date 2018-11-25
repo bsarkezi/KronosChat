@@ -121,6 +121,20 @@ body{
   transform-origin: 0 0;
 }
 
+/* for modal backdrop across entire page, otherwise there is empty white space along bottom and right sides of backdrop */
+ .modal-backdrop{
+  width: 300% !important;
+  height: 300% !important;
+} 
+
+.modal{
+  height: 1000%;
+}
+
+#group-user-search{
+  z-index:3000;
+}
+
 @media screen and (max-width: 575px){
   
   .contact>div{

@@ -96,7 +96,7 @@
 
     <main id="main" class="container">
         <div id="messages-card-container" class="row">
-            <section class="col-md-5 card">
+            <section class="col-md-5 card" id="contacts-section">
 
                 <!-- TODO: UREDITI DA KONTAKTI BUDU SKROLABILNI, UREDITI LAYOUT/POLOZAJ -->
 
@@ -123,30 +123,33 @@
                 </div>
             </section>
 
-            <section class="col-md-7 card" id="messages-section">
+            <section class="col-md-7 card container" id="messages-section">
                 <!-- Messages container -->
-                <div class="container" id="messages-container">
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div id="messages-card" class="card-body">
-                                <div>
-                                    <b>
-                                        <p hidden id="contact-name" style="border-bottom: 1px solid grey; text-align: center; font-weight: bold"></p>
-                                    </b>
-                                </div>
-
-                                <div>
-
-                                    <div id="messages">
-                                        <span id="message-filler"></span>
+                <div class="container">
+                    <div class="container" id="messages-container">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div id="messages-card" class="card-body">
+                                    <div>
+                                        <b>
+                                            <p hidden id="contact-name" style="border-bottom: 1px solid grey; text-align: center; font-weight: bold"></p>
+                                        </b>
                                     </div>
-
+    
+                                    <div>
+    
+                                        <div id="messages">
+                                            <span id="message-filler"></span>
+                                        </div>
+    
+                                    </div>
                                 </div>
                             </div>
                         </div>
+    
                     </div>
-
                 </div>
+                
 
                 <!-- FORMA ZA UNOS -->
                 <div class="container">
@@ -174,6 +177,7 @@
                         </div>
                     </div>
                 </div>
+                
             </section>
 
 
@@ -185,28 +189,17 @@
 
 
         </div>
+
+        <button class="btn btn-danger" onclick='$("#username-modal").modal()'>
+            <!-- //<a href="#username-modal" >Username modal</a> -->
+            Username modal
+        </button>
+        
+        <button id="btn-group-chat-add" class="btn btn-default" onclick="$('#group-create-modal').modal()">Add group</button>
+        
     </main>
 
-    <div class="modal fade" id="username-modal">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Pick a username</h3>
-                </div>
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <input type="textbox" class="form-control" id="username-input" />
-                            <span class="text-danger" id="taken-username" hidden="false"></span>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-primary" onclick="return saveUsername();" id="btn-username-save">Done</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    
     <!-- </div> -->
 
     <!-- Firebase App is always required and must be first -->
@@ -233,6 +226,71 @@
         firebase.initializeApp(config);
     </script>
     <script src="scripts/main.js"></script>
+
+    <div class="modal fade" id="username-modal" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Pick a username</h3>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <input type="textbox" class="form-control" id="username-input" />
+                            <span class="text-danger" id="taken-username" hidden="false"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" onclick="return saveUsername();" id="btn-username-save">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="group-create-modal" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Create a new group chat</h3>
+                </div>
+                <div class="modal-body mb-1">
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <label for="group-name" class="control-label">Group name:</label>
+                            <input type="textbox" name="group-name" class="form-control" id="group-name" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <input type="textbox" class="form-control" id="group-member-input" list ="group-user-search" placeholder="Search users..." />
+                            <datalist id="group-user-search"></datalist>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <ul class="list-group list-group-flush" id="ul-user-list">
+                                <!-- 
+                                <li class="list-group-item">
+                                    <div class="row">
+                                        <div class="col-xs-2"><a href="#" class="mr-2" onclick="deleteFromCreateModalUserList('aaa')"><i class="fas fa-times"></i></a></i></div>
+                                        <div class="col-xs-10"><p class="pb-1">Lorem ipsum</p></div>
+                                    </div>
+                                </li> -->
+                                
+                            </ul>
+                            <input type="hidden" id="group-user-list" name="group-user-list" value="aaa|||aaa" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="group-save" class="btn btn-primary" onclick="createGroupChat()">Done</button>
+                </div>
+            </div>
+        </div>>
+            
+        </div>
+    </div>
 
 </body>
 
