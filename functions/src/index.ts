@@ -14,7 +14,7 @@ export const addUser = functions.auth.user().onCreate((user) =>{
         email:user.email,
         name:user.displayName,
         profilePic: user.photoURL,
-        uid: user.uid
-    });
-    console.log("User added");
+        uid: user.uid,
+        nickname: ""
+        })
 })

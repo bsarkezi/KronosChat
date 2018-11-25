@@ -13,7 +13,8 @@ exports.addUser = functions.auth.user().onCreate((user) => {
         email: user.email,
         name: user.displayName,
         profilePic: user.photoURL,
-        uid: user.uid
+        uid: user.uid,
+        nickname: ""
     });
     console.log("User added");
 });

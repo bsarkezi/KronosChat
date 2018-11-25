@@ -171,8 +171,19 @@ function onMessageFormSubmit(e) {
 }
 
 // Triggers when the auth state change for instance when the user signs-in or signs-out.
-function authStateObserver(user) {
+async function authStateObserver(user) {
     if (user) { // User is signed in!
+
+
+    firebase.database().ref("users/"+firebase.auth().currentUser.uid).once("value").then(function(snap){
+            if(!snap.val()){
+                console.log("new user");
+                $("#username-modal").modal({
+                    backdrop: "static",
+                    keyboard: false
+                });
+            }
+        });    
 
         //B.Š. - initialize contacts only when the auth controller is initialised and user is logged in
         initGroupsList().then(function () {
@@ -861,10 +872,10 @@ function sortContacts(array) {
 function searchUsers(searchString){
     $("#search-result").empty();
     if(searchString != ""){
-        firebase.database().ref("users/").orderByChild("email").startAt(searchString).endAt(searchString + "\uf8ff").once("value", function (snap) {
+        firebase.database().ref("users/").orderByChild("nickname").startAt(searchString).endAt(searchString + "\uf8ff").once("value", function (snap) {
             if (snap.exists()) {
                 snap.forEach(function (data) {
-                    $("#search-result").append("<option value='"+data.val().displayName+"'></option>")
+                    $("#search-result").append("<option value='"+data.val().nickname+"'></option>")
                 });     
                        
             }
@@ -880,6 +891,43 @@ $("#user-search").bind("keyup", function(event){
     $("#search-result").empty();
     searchUsers($(this).val());
 })
+
+function saveUsername(){
+    $("#taken-username").attr("hidden", true);
+    if($("#username-input").val() != ""){
+        console.log($("#username-input").val());
+        firebase.database().ref("users/").orderByChild("nickname").equalTo($("#username-input").val()).once("value").then(function(snap){
+            if(!snap.val()){
+                firebase.database().ref("users/"+firebase.auth().currentUser.uid).set({
+                    email: firebase.auth().currentUser.email,
+                    name: firebase.auth().currentUser.displayName,
+                    profilePic: firebase.auth().currentUser.photoURL,
+                    uid: firebase.auth().currentUser.uid,
+                    nickname: $("#username-input").val()
+                });
+                $("#username-modal").modal("hide");
+                $("#username-input").val("");
+                $("#taken-username").attr("hidden", true);
+            }
+            else{
+                $("#taken-username").attr("hidden", false);
+                $("#taken-username").text("Username already taken!");
+                
+            }
+        });
+    }
+    else{
+        $("#taken-username").text("Username must not be empty");
+    }
+
+}
+
+$(document).keypress(function(event){
+    if(event.which== 13 && ($("#username-modal").data('bs.modal') || {})._isShown){  //if #username-modal Bootstrap modal element is currently shown
+        saveUsername();
+    }
+})
+
 
 //TESTING AN' SHIT
 

@@ -3,7 +3,7 @@
     ".read": "auth != null",
     ".write": "auth != null",
     "users":{
-      ".indexOn":["email","uid"]
+      ".indexOn":["email","uid","nickname","displayName"]
     },
     "chats":{
       ".indexOn":"participants"
