@@ -945,34 +945,47 @@ window.onload = function(){
 
 
 function saveUsername(){
-    $("#taken-username").attr("hidden", true);
+    $("#username-error").attr("hidden", true);
     if($("#username-input").val() != ""){
-        console.log($("#username-input").val());
-        firebase.database().ref("users/").orderByChild("nickname").equalTo($("#username-input").val()).once("value").then(function(snap){
-            if(!snap.val()){
-                firebase.database().ref("users/"+firebase.auth().currentUser.uid).set({
-                    email: firebase.auth().currentUser.email,
-                    name: firebase.auth().currentUser.displayName,
-                    profilePic: firebase.auth().currentUser.photoURL,
-                    uid: firebase.auth().currentUser.uid,
-                    nickname: $("#username-input").val()
-                });
-                $("#username-modal").modal("hide");
-                $("#username-input").val("");
-                $("#taken-username").attr("hidden", true);
-            }
-            else{
-                $("#taken-username").attr("hidden", false);
-                $("#taken-username").text("Username already taken!");
-                
-            }
-        });
+        //console.log($("#username-input").val());
+        var regex = new RegExp('^[a-zA-Z0-9_-]*$');
+        if(regex.test($("#username-input").val())){
+            firebase.database().ref("users/").orderByChild("nickname").equalTo($("#username-input").val()).once("value").then(function(snap){
+                if(!snap.val()){
+                    firebase.database().ref("users/"+firebase.auth().currentUser.uid).set({
+                        email: firebase.auth().currentUser.email,
+                        name: firebase.auth().currentUser.displayName,
+                        profilePic: firebase.auth().currentUser.photoURL,
+                        uid: firebase.auth().currentUser.uid,
+                        nickname: $("#username-input").val()
+                    });
+                    $("#username-modal").modal("hide");
+                    $("#username-input").val("");
+                    $("#username-error").attr("hidden", true);
+                }
+                else{
+                    $("#username-error").attr("hidden", false);
+                    $("#username-error").text('Username already taken!');
+                    
+                }
+            });
+        }
+        else{
+            $("#username-error").attr("hidden", false);
+            $("#username-error").text("Invalid username!  ");
+            $("#username-error").append('<i data-toggle="tooltip" class="fas fa-info-circle">Username conditions</i>');
+        }
+        
     }
     else{
-        $("#taken-username").text("Username must not be empty");
+        $("#username-error").text("Username must not be empty");
     }
 
 }
+
+$(function () {
+    $('[data-toggle="tooltip"]').tooltip()
+});
 
 $(document).keypress(function(event){
     if(event.which== 13 && ($("#username-modal").data('bs.modal') || {})._isShown){  //if #username-modal Bootstrap modal element is currently shown
