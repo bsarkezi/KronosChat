@@ -175,7 +175,7 @@ async function authStateObserver(user) {
     if (user) { // User is signed in!
 
 
-    firebase.database().ref("users/"+firebase.auth().currentUser.uid).once("value").then(function(snap){
+    firebase.database().ref("users_reg/"+firebase.auth().currentUser.uid).once("value").then(function(snap){
             if(!snap.val()){
                 console.log("new user");
                 $("#username-modal").modal({
@@ -419,14 +419,18 @@ function initContactsList() {
         contacts = sortContacts(contacts);
 
         contactsListElement.innerHTML = "";
-        for (var i = 0; i < contacts.length; i++) {
+        // for (var i = 0; i < contacts.length; i++) {
+        //     firebase.database().ref("users/"+contacts[i].nickname).once("value", function(snapshot){
+        //         //var contactsToAdd = "<div class='col-sm-3'><img src =" + snapshot.val().profilePic + " /></div><div class = 'col-sm-9'<p><b>" + contacts[i].convoPartner + "</b></p><p>" + contacts[i].latestMessage + "</p></div>";
+        //         var contactsToAdd = "<div class='col-sm-3'><img src =" + snapshot.val().profilePic + " /></div><div class = 'col-sm-9'<p><b>" + contacts[i].convoPartner + "</b></p><p>" + contacts[i].latestMessage + "</p></div>";
+        //         var contactDiv = document.createElement("div");
+        //         contactDiv.className = "contact row"
+        //         contactDiv.innerHTML = contactsToAdd;
+        //         document.getElementById("contacts").appendChild(contactDiv);
+        //     });
             //var contactsToAdd = "<p><b>" + contacts[i].convoPartner + "</b></p><p>" + contacts[i].latestMessage + "</p>";
-            var contactsToAdd = "<div class='col-sm-3'><img src =" + contacts[i].latestMessageSenderProfilePic + " /></div><div class = 'col-sm-9'<p><b>" + contacts[i].convoPartner + "</b></p><p>" + contacts[i].latestMessage + "</p></div>";
-            var contactDiv = document.createElement("div");
-            contactDiv.className = "contact row"
-            contactDiv.innerHTML = contactsToAdd;
-            document.getElementById("contacts").appendChild(contactDiv);
-        }
+            
+//        }
 
         $(".contact").click(function () {
             $("#contact-name").removeAttr("hidden");
@@ -871,15 +875,16 @@ function sortContacts(array) {
 
 function searchUsers(searchString, type){
     $("#search-result").empty();
-    $("#group-user-search").empty();
+    
     if(type == "contact"){
         if(searchString != ""){
             firebase.database().ref("users/").orderByChild("nickname").startAt(searchString).endAt(searchString + "\uf8ff").once("value", function (snap) {
                 if (snap.exists()) {
                     snap.forEach(function (data) {
                         $("#search-result").append("<option value='"+data.val().nickname+"'></option>")
+                        
                     });     
-                           
+                            
                 }
             });
         }
@@ -888,10 +893,12 @@ function searchUsers(searchString, type){
         if(searchString != ""){
             firebase.database().ref("users/").orderByChild("nickname").startAt(searchString).endAt(searchString + "\uf8ff").once("value", function (snap) {
                 if (snap.exists()) {
+                    $("#group-user-search").empty();
                     snap.forEach(function (data) {
                         $("#group-user-search").append("<option value='"+data.val().nickname+"'></option>")
+                        //console.log(data.val().nickname);
                     });     
-                           
+                    //console.log("----------------------------------");            
                 }
             });
         }
@@ -904,11 +911,16 @@ $("#user-search").bind("keyup", function(event){
     if(event.which == 13 && $("#search-result option").length == 1){
         //$("#search-result option").val(); nesto...
         console.log($("#search-result option").val());
-        //dodaj korisnika
+        createNewIndividualChat($("#search-result option").val())
     }
     $("#search-result").empty();
     searchUsers($(this).val(), "contact");
 });
+
+$("#search-result option").bind("click", function(event){
+    createNewIndividualChat($(this).val());
+});
+
 
 /*
 B.Š. - search users for adding to list of participants in group chat yet to be created, used in group
@@ -927,6 +939,7 @@ window.onload = function(){
             }
             //$("#group-user-search").empty();
             //console.log("lorem ipsum");
+            $("#group-user-search").empty();
             searchUsers($("#group-member-input").val(), "group");
         });
         $("#group-user-search option").click(function(){
@@ -952,13 +965,22 @@ function saveUsername(){
         if(regex.test($("#username-input").val())){
             firebase.database().ref("users/").orderByChild("nickname").equalTo($("#username-input").val()).once("value").then(function(snap){
                 if(!snap.val()){
-                    firebase.database().ref("users/"+firebase.auth().currentUser.uid).set({
+                    firebase.auth().currentUser.nickname = $("#username-input").val();
+                    firebase.database().ref("users/"+firebase.auth().currentUser.nickname).set({
                         email: firebase.auth().currentUser.email,
                         name: firebase.auth().currentUser.displayName,
                         profilePic: firebase.auth().currentUser.photoURL,
                         uid: firebase.auth().currentUser.uid,
                         nickname: $("#username-input").val()
                     });
+                    firebase.database().ref("users_reg/"+firebase.auth().currentUser.uid).set({
+                        email: firebase.auth().currentUser.email,
+                        name: firebase.auth().currentUser.displayName,
+                        profilePic: firebase.auth().currentUser.photoURL,
+                        uid: firebase.auth().currentUser.uid,
+                        nickname: $("#username-input").val()
+                    });
+                    
                     $("#username-modal").modal("hide");
                     $("#username-input").val("");
                     $("#username-error").attr("hidden", true);
@@ -1031,13 +1053,73 @@ function renderGroupUsersList(){
 }
 
 function createGroupChat(){
+    $("#group-error").prop("hidden", true);
     if(confirm("Are you sure?")){
-        $('#group-create-modal').modal('hide');
+        if($("#ul-user-list li").length>=1 && $("#group-name").val()!= ""){
+            var users = [];
+            $("#ul-user-list li").each(function(){
+                users.push($(this).text());
+            });
+            var regex = new RegExp('^[a-zA-Z0-9_ -]*$');
+            if(regex.test($("#group-name").val())){
+                firebase.database().ref("groups/").once("value",function(snapshot){
+                    if(snapshot.hasChild($("#group-name").val())){
+                        $("#group-error").prop("hidden", true);
+                        $("#group-error").text("Groupp name already used!");
+                    }
+                    else{
+                        //TODO: UPLOAD PROFILNE SLIKE ZA GRUPU
+                        firebase.database().ref("groups/"+$("#group-name").val()).set({
+                            displayName: $("#group-name").val(),
+                            latestMessage: "",
+                            latestMessageSender: "",
+                            profilePic: "",
+                            latestMessageTimestamp: + new Date(),
+                            participants: users
+                        }).then(function(){
+                            $('#group-create-modal').modal('hide');
+                        });
+                    }
+                });
+            }
+            else{
+                $("#group-error").prop("hidden", true);
+                $("#group-error").text("Invalid group name!");
+            }
+            
+        }
+        else{
+            $("#group-error").prop("hidden", true);
+            $("#group-error").text("At least one user is needed!");
+        }
+        
     }
+}
+
+function createNewIndividualChat(nickname){
+    firebase.database.ref("chats/").once("value",function(snapshot){
+        if(snapshot.hasChild(nickname+"_"+firebase.auth().currentUser.nickname) || snapshot.hasChild(firebase.auth().currentUser.nickname + "_"+nickname)){
+            alert("User already added to conversation list!");
+        }
+        else{
+            firebase.database().ref("chats/" + firebase.auth().currentUser.nickname + "_"+nickname).set({
+                groupChat: true,
+                latestMessage: + new Date(),
+                latestMessageSender: firebase.auth().currentUser.nickname,
+                message: null,
+                messages: [],
+                participants: [firebase.auth().currentUser.nickname, nickname],
+                sender: firebase.auth().currentUser.nickname,
+                type: "text"
+            })
+        }
+    });
 }
 
 //TESTING AN' SHIT
 
 function test(searchString) {
-    
+    firebase.database().ref("chats/").once("value",function(snapshot){
+        console.log(snapshot.hasChild(searchString));
+    });
 }

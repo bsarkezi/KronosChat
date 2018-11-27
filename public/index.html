@@ -254,34 +254,53 @@
                 <div class="modal-header">
                     <h3>Create a new group chat</h3>
                 </div>
-                <div class="modal-body mb-1">
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <label for="group-name" class="control-label">Group name:</label>
-                            <input type="textbox" name="group-name" class="form-control" id="group-name" />
+                <div class="modal-body">
+                    <div class="card mb-2">
+                        <div class="card-header">
+                            <h3>Basic information</h3>
+                            
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <label for="group-name" class="control-label">Group name:</label>
+                                    <input type="textbox" name="group-name" class="form-control" id="group-name" />
+                                    <span class="text-danger" id="group-error" hidden="true"></span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <input type="textbox" class="form-control" id="group-member-input" list ="group-user-search" placeholder="Search users..." />
-                            <datalist id="group-user-search"></datalist>
+
+                    <div class="card ">
+                        <div class="card-header">
+                            Members
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <input type="textbox" class="form-control" id="group-member-input" list="group-user-search" placeholder="Search users..." />
+                                    <datalist id="group-user-search"></datalist>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <ul class="list-group list-group-flush" id="ul-user-list">
+                                        <!-- 
+                                            <li class="list-group-item">
+                                                <div class="row">
+                                                    <div class="col-xs-2"><a href="#" class="mr-2" onclick="deleteFromCreateModalUserList('aaa')"><i class="fas fa-times"></i></a></i></div>
+                                                    <div class="col-xs-10"><p class="pb-1">Lorem ipsum</p></div>
+                                                </div>
+                                            </li> -->
+                            
+                                    </ul>
+                                    <input type="hidden" id="group-user-list" name="group-user-list" value="aaa|||aaa" />
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <ul class="list-group list-group-flush" id="ul-user-list">
-                                <!-- 
-                                <li class="list-group-item">
-                                    <div class="row">
-                                        <div class="col-xs-2"><a href="#" class="mr-2" onclick="deleteFromCreateModalUserList('aaa')"><i class="fas fa-times"></i></a></i></div>
-                                        <div class="col-xs-10"><p class="pb-1">Lorem ipsum</p></div>
-                                    </div>
-                                </li> -->
-                                
-                            </ul>
-                            <input type="hidden" id="group-user-list" name="group-user-list" value="aaa|||aaa" />
-                        </div>
-                    </div>
+                    
+                    
                 </div>
                 <div class="modal-footer">
                     <button id="group-save" class="btn btn-primary" onclick="createGroupChat()">Done</button>
