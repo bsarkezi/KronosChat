@@ -15,6 +15,9 @@
  */
 'use strict';
 
+let groups = [];
+let a = [];
+let months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 function signIn() {
     // Sign in Firebase using popup auth and Google as the identity provider.
@@ -143,11 +146,12 @@ function onMediaFileSelected(event) {
 
     // Check if the file is an image.
     if (!file.type.match('image.*')) {
-        var data = {
-            message: 'You can only share images',
-            timeout: 2000
-        };
-        signInSnackbarElement.MaterialSnackbar.showSnackbar(data);
+        // var data = {
+        //     message: 'You can only share images',
+        //     timeout: 2000
+        // };
+        // messageSnackbarElement.MaterialSnackbar.showSnackbar(data);
+        showSnackbar('You can only share images');
         return;
     }
     // Check if the user is signed-in
@@ -175,20 +179,27 @@ async function authStateObserver(user) {
     if (user) { // User is signed in!
 
 
-    firebase.database().ref("users_reg/"+firebase.auth().currentUser.uid).once("value").then(function(snap){
-            if(!snap.val()){
+        firebase.database().ref("users_reg/" + firebase.auth().currentUser.uid).once("value").then(function (snap) {
+            if (!snap.val()) {
                 console.log("new user");
                 $("#username-modal").modal({
                     backdrop: "static",
                     keyboard: false
                 });
             }
-        });    
+            else{
+                firebase.auth().currentUser.nickname = snap.val().nickname;
+            }
+        }).then(function(){
+            initGroupsList().then(function () {
+                //initContactsList();
+                initMainEventListeners();
+            });
+            
+        });
 
         //B.Š. - initialize contacts only when the auth controller is initialised and user is logged in
-        initGroupsList().then(function () {
-            initContactsList();
-        })
+        
 
         // Get the signed-in user's profile pic and name.
         var profilePicUrl = getProfilePicUrl();
@@ -210,7 +221,12 @@ async function authStateObserver(user) {
         // We save the Firebase Messaging Device token and enable notifications.
         //saveMessagingDeviceToken();
 
-    } else { // User is signed out!
+        // firebase.database().ref(`latest/${firebase.auth().currentUser.nickname}`).on("child_changed", initContactsList());
+        // firebase.databse().ref(`latest/${firebase.auth().currentUser.nickname}`).on("child_added", initContactsList());
+
+    }
+
+    else { // User is signed out!
 
         contactsListElement.innerHTML = "";
 
@@ -234,15 +250,17 @@ function checkSignedInWithMessage() {
     }
 
     // Display a message to the user using a Toast.
-    var data = {
-        message: 'You must sign-in first',
-        timeout: 2000
-    };
-    signInSnackbarElement.MaterialSnackbar.showSnackbar(data);
+    // var data = {
+    //     message: 'You must sign-in first',
+    //     timeout: 2000
+    // };
+    // messageSnackbarElement.MaterialSnackbar.showSnackbar(data);
+    showSnackbar("You must sign-in first");
     return false;
 }
 
 // Resets the given MaterialTextField.
+//TODO: PREIMENOVATI
 function resetMaterialTextfield(element) {
     element.value = '';
     element.parentNode.MaterialTextfield.boundUpdateClassesHandler();
@@ -338,7 +356,7 @@ var userPicElement = document.getElementById('user-pic');
 var userNameElement = document.getElementById('user-name');
 var signInButtonElement = document.getElementById('sign-in');
 var signOutButtonElement = document.getElementById('sign-out');
-var signInSnackbarElement = document.getElementById('must-signin-snackbar');
+var messageSnackbarElement = document.getElementById('alert-snackbar');
 
 var contactsListElement = document.getElementById('contacts');
 
@@ -366,9 +384,7 @@ initFirebaseAuth();
 
 //TODO: naci drugi nacin doohvacanja grupa u kojima je korisnik
 
-var groups = [];
-var a = [];
-var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
 
 function snapshotToArray(snapshot) {
     var returnArr = [];
@@ -403,41 +419,62 @@ function initContactsList() {
     var contacts = [];
 
 
-    firebase.database().ref("latest/" + firebase.auth().currentUser.uid).orderByChild("latestMessageTimestamp").once("value", function (snap) {
+    firebase.database().ref("latest/" + firebase.auth().currentUser.nickname).orderByChild("latestMessageTimestamp").once("value", function (snap) {
+        //console.log(snap.val());
         snap.forEach(function (childSnap) {
+            //console.log(childSnap.val());
             contacts.push(childSnap.val());
         });
-        groups.forEach(function (group) {
-            var temp = group;
-            temp.convoPartner = group.displayName;
-            //delete temp.displayName;
-            contacts.push(temp);
 
-        })
+        if(groups.length>0){
+            groups.forEach(function (group) {
+                var temp = group;
+                temp.convoPartner = group.displayName;
+                //delete temp.displayName;
+                contacts.push(temp);
+    
+            });
+        }
+
+        
+        //console.log(contacts);
     }).then(function () {
-
+        
         contacts = sortContacts(contacts);
-
+        
+        
         contactsListElement.innerHTML = "";
-        // for (var i = 0; i < contacts.length; i++) {
-        //     firebase.database().ref("users/"+contacts[i].nickname).once("value", function(snapshot){
-        //         //var contactsToAdd = "<div class='col-sm-3'><img src =" + snapshot.val().profilePic + " /></div><div class = 'col-sm-9'<p><b>" + contacts[i].convoPartner + "</b></p><p>" + contacts[i].latestMessage + "</p></div>";
-        //         var contactsToAdd = "<div class='col-sm-3'><img src =" + snapshot.val().profilePic + " /></div><div class = 'col-sm-9'<p><b>" + contacts[i].convoPartner + "</b></p><p>" + contacts[i].latestMessage + "</p></div>";
-        //         var contactDiv = document.createElement("div");
-        //         contactDiv.className = "contact row"
-        //         contactDiv.innerHTML = contactsToAdd;
-        //         document.getElementById("contacts").appendChild(contactDiv);
-        //     });
-            //var contactsToAdd = "<p><b>" + contacts[i].convoPartner + "</b></p><p>" + contacts[i].latestMessage + "</p>";
-            
-//        }
+        for (let i = 0; i < contacts.length; i++) {
+            console.log(i);
+            firebase.database().ref("users/" + contacts[i].convoPartner).once("value", function (snapshot) {
+                console.log(snapshot.val().profilePic);
+                
+                console.log(contacts[i]["convoPartner"]);
+                //var contactsToAdd = "<div class='col-sm-3'><img src =" + snapshot.val().profilePic + " /></div><div class = 'col-sm-9'<p><b>" + contacts[i].convoPartner + "</b></p><p>" + contacts[i].latestMessage + "</p></div>";
+                var contactsToAdd = `<div class='col-sm-3'><img src= ${snapshot.val().profilePic}  /></div><div class = 'col-sm-9'<p><b> ${contacts[i]["convoPartner"]}</b></p><p> ${contacts[i]["latestMessage"]}</p></div>`;
+                var contactDiv = document.createElement("div");
+                contactDiv.className = "contact row"
+                contactDiv.innerHTML = contactsToAdd;
+                document.getElementById("contacts").appendChild(contactDiv);
+            });
+            //wat
+            //var contactsToAdd = "<p><b>" + contacts[i].convoPartner + "</b></p><p>" + contacts[i].latestMessage + "</p>"; //the fuck is this
 
-        $(".contact").click(function () {
+        }
+
+        // $(".contact").click(function () {
+        //     $("#contact-name").removeAttr("hidden");
+        //     $("#contact-name").text($(this).find("b:first").text());
+        //     loadMessages();
+        // });
+        $(".contact").on("click", function () {
             $("#contact-name").removeAttr("hidden");
             $("#contact-name").text($(this).find("b:first").text());
             loadMessages();
         });
     });
+    //firebase.database().ref(`latest/${firebase.auth().currentUser.nickname}`).on("child_changed", initGroupsList().then(initContactsList()));
+    // firebase.databse().ref(`latest/${firebase.auth().currentUser.nickname}`).on("child_added", initGroupsList().then(initContactsList()));
 }
 
 // Loads chat messages history and listens for upcoming ones.
@@ -453,19 +490,19 @@ function loadMessages() {
         displayMessage(snap.key, data.sender, data.content, data.timestamp, data.profilePic, data.imageUrl);
     };
 
-    firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("value", function (snapshot) {
+    firebase.database().ref("users").orderByKey().equalTo($("#contact-name").text()).on("value", function (snapshot) {
         if (snapshot.exists()) {
 
-            firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("child_added", function (snapshot) {
-                var secondUserUid = snapshot.val().uid;
+            firebase.database().ref("users").orderByKey().equalTo($("#contact-name").text()).on("child_added", function (snapshot) {
+                var secondUserNickname = $("#contact-name").text();
                 firebase.database().ref("chats").once("value").then(function (snapshot) {
-                    if (snapshot.hasChild(firebase.auth().currentUser.uid + "_" + secondUserUid)) {
-                        firebase.database().ref("/chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid + "/messages").on("child_added", msgCallback);
-                        firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid + "/messages").on("child_changed", msgCallback);
+                    if (snapshot.hasChild(firebase.auth().currentUser.nickname + "_" + secondUserNickname)) {
+                        firebase.database().ref("chats/" + firebase.auth().currentUser.nickname + "_" + secondUserNickname + "/messages").on("child_added", msgCallback);
+                        firebase.database().ref("chats/" + firebase.auth().currentUser.nickname + "_" + secondUserNickname + "/messages").on("child_changed", msgCallback);
                     }
                     else if (snapshot.hasChild(secondUserUid + "_" + firebase.auth().currentUser.uid)) {
-                        firebase.database().ref("chats/" + secondUserUid + "_" + firebase.auth().currentUser.uid + "/messages").on("child_added", msgCallback);
-                        firebase.database().ref("chats/" + secondUserUid + "_" + firebase.auth().currentUser.uid + "/messages").on("child_changed", msgCallback);
+                        firebase.database().ref("chats/" + secondUserNickname + "_" + firebase.auth().currentUser.nickname + "/messages").on("child_added", msgCallback);
+                        firebase.database().ref("chats/" + secondUserNickname + "_" + firebase.auth().currentUser.nickname + "/messages").on("child_changed", msgCallback);
                     }
 
                 });
@@ -480,54 +517,55 @@ function loadMessages() {
 }
 
 function saveMessage(msgText) {
-
-    if ($("#contact-name").text() == "") {
-        var data = {
-            message: "Please select a contact first",
-            timeout: 2000
-        }
-        signInSnackbarElement.MaterialSnackbar.showSnackbar(data);
+    var secondUserNickname = $("#contact-name").text();
+    if (secondUserNickname == "") {
+        // var data = {
+        //     message: "Please select a contact first",
+        //     timeout: 2000
+        // }
+        // messageSnackbarElement.MaterialSnackbar.showSnackbar(data);
+        showSnackbar("Please select a contact first");
         return;
     }
 
     else {
-        firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("value", function (snapshot) {
+        firebase.database().ref("users").orderByKey().equalTo(secondUserNickname).on("value", function (snapshot) {
 
             //INDIVIDUAL CHATS
             if (snapshot.exists()) {
-                firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).once("child_added", function (snapshot) {
-                    var secondUserUid = snapshot.val().uid;
+                firebase.database().ref("users").orderByKey().equalTo(secondUserNickname).once("child_added", function () {
+
                     firebase.database().ref("chats").once("value").then(function (snapshot) {
                         //  B.Š. - check if conversations already exist, if not, create a new convo. 
-                        //  Checks for uid1_uid2, uid2_uid1 convo names.
+                        //  Checks for nickname1_nickname2, nickname2_nickname1 convo names.
 
-                        if (snapshot.hasChild(firebase.auth().currentUser.uid + "_" + secondUserUid)) {
-                            firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid).update({
-                                participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
+                        if (snapshot.hasChild(firebase.auth().currentUser.nickname + "_" + secondUserNickname)) {
+                            firebase.database().ref("chats/" + firebase.auth().currentUser.nickname + "_" + secondUserNickname).update({
+                                participants: [firebase.auth().currentUser.nickname, secondUserNickname],
                                 latestMessage: + new Date(),
                                 message: msgText,
-                                sender: firebase.auth().currentUser.email,
+                                sender: firebase.auth().currentUser.nickname,
                                 groupChat: false
                             }).then(function () {
-                                resetMaterialTextfield(messageInputElement);
+                                resetMaterialTextfield(messageInputElement); //TODO: preimenovati
                                 toggleButton();
-                                firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid + "/messages").push({
+                                firebase.database().ref("chats/" + firebase.auth().currentUser.nickname + "_" + secondUserNickname + "/messages").push({
                                     type: "text",
                                     content: msgText,
-                                    sender: firebase.auth().currentUser.email,
+                                    sender: firebase.auth().currentUser.nickname,
                                     timestamp: + new Date(),
                                     profilePic: firebase.auth().currentUser.photoURL
                                 });
                             });
-                            firebase.database().ref("latest/" + firebase.auth().currentUser.uid + "/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
+                            firebase.database().ref("latest/" + firebase.auth().currentUser.nickname + "/" + firebase.auth().currentUser.nickname + "_" + secondUserNickname).set({
                                 latestMessage: msgText,
-                                latestMessageSender: firebase.auth().currentUser.email,
+                                latestMessageSender: firebase.auth().currentUser.nickname,
                                 latestMessageTimestamp: + new Date(),
                                 latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
-                                convoPartner: $("#contact-name").text(),
+                                convoPartner: secondUserNickname,
                                 type: "text"
                             });
-                            firebase.database().ref("latest/" + secondUserUid + "/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
+                            firebase.database().ref("latest/" + secondUserNickname + "/" + firebase.auth().currentUser.nickname + "_" + secondUserNickname).set({
                                 latestMessage: msgText,
                                 latestMessageSender: firebase.auth().currentUser.email,
                                 latestMessageTimestamp: + new Date(),
@@ -537,74 +575,75 @@ function saveMessage(msgText) {
                             });
 
                         }
-                        else if (snapshot.hasChild(secondUserUid + "_" + firebase.auth().currentUser.uid)) {
-                            firebase.database().ref("chats/" + secondUserUid + "_" + firebase.auth().currentUser.uid).update({
-                                participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
+                        else if (snapshot.hasChild(secondUserNickname + "_" + firebase.auth().currentUser.nickname)) {
+                            firebase.database().ref("chats/" + secondUserNickname + "_" + firebase.auth().currentUser.nickname).update({
+                                participants: [firebase.auth().currentUser.nickname, secondUserNickname],
                                 latestMessage: + new Date(),
                                 message: msgText,
-                                sender: firebase.auth().currentUser.email,
+                                sender: firebase.auth().currentUser.nickname,
                                 groupChat: false,
                                 profilePic: firebase.auth().currentUser.photoURL
                             }).then(function () {
                                 resetMaterialTextfield(messageInputElement);
                                 toggleButton();
-                                firebase.database().ref("chats/" + secondUserUid + "_" + firebase.auth().currentUser.uid + "/messages").push({
+                                firebase.database().ref("chats/" + secondUserNickname + "_" + firebase.auth().currentUser.nickname + "/messages").push({
                                     type: "text",
                                     content: msgText,
-                                    sender: firebase.auth().currentUser.email,
+                                    sender: firebase.auth().currentUser.nickname,
                                     timestamp: + new Date()
                                 });
                             });
-                            firebase.database().ref("latest/" + firebase.auth().currentUser.uid + "/" + secondUserUid + "_" + firebase.auth().currentUser.uid).set({
+                            firebase.database().ref("latest/" + firebase.auth().currentUser.nickname + "/" + secondUserNickname + "_" + firebase.auth().currentUser.nickname).set({
                                 latestMessage: msgText,
-                                latestMessageSender: firebase.auth().currentUser.email,
+                                latestMessageSender: firebase.auth().currentUser.nickname,
                                 latestMessageTimestamp: + new Date(),
                                 latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
-                                convoPartner: $("#contact-name").text(),
+                                convoPartner: secondUserNickname,
                                 type: "text"
                             });
-                            firebase.database().ref("latest/" + secondUserUid + "/" + secondUserUid + "_" + firebase.auth().currentUser.uid).set({
+                            firebase.database().ref("latest/" + secondUserNickname + "/" + secondUserNickname + "_" + firebase.auth().currentUser.nickname).set({
                                 latestMessage: msgText,
-                                latestMessageSender: firebase.auth().currentUser.email,
+                                latestMessageSender: firebase.auth().currentUser.nickname,
                                 latestMessageTimestamp: + new Date(),
                                 latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
                                 convoPartner: firebase.auth().currentUser.email,
+                                //convoPartner: secondUserNickname,
                                 type: "text"
                             });
                         }
                         else {
-                            firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
-                                participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
+                            firebase.database().ref("chats/" + firebase.auth().currentUser.nickname + "_" + secondUserNickname).set({
+                                participants: [firebase.auth().currentUser.nickname, secondUserNickname],
                                 latestMessage: + new Date(),
                                 message: msgText,
-                                latestMessageSender: firebase.auth().currentUser.email,
+                                latestMessageSender: firebase.auth().currentUser.nickname,
                                 groupChat: false,
                                 profilePic: firebase.auth().currentUser.photoURL
                             }).then(function () {
                                 resetMaterialTextfield(messageInputElement);
                                 toggleButton();
 
-                                firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid + "/messages").push({
+                                firebase.database().ref("chats/" + firebase.auth().currentUser.nickname + "_" + secondUserNickname + "/messages").push({
                                     type: "text",
                                     content: msgText,
-                                    sender: firebase.auth().currentUser.email,
+                                    sender: firebase.auth().currentUser.nickname,
                                     timestamp: + new Date()
                                 });
                             });
-                            firebase.database().ref("latest/" + firebase.auth().currentUser.uid + "/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
+                            firebase.database().ref("latest/" + firebase.auth().currentUser.nickname + "/" + firebase.auth().currentUser.nickname + "_" + secondUserNickname).set({
                                 latestMessage: msgText,
-                                latestMessageSender: firebase.auth().currentUser.email,
+                                latestMessageSender: firebase.auth().currentUser.nickname,
                                 latestMessageTimestamp: + new Date(),
                                 latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
-                                convoPartner: $("#contact-name").text(),
+                                convoPartner: secondUserNickname,
                                 type: "text"
                             });
-                            firebase.database().ref("latest/" + secondUserUid + "/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
+                            firebase.database().ref("latest/" + secondUserNickname + "/" + firebase.auth().currentUser.nickname + "_" + secondUserNickname).set({
                                 latestMessage: msgText,
-                                latestMessageSender: firebase.auth().currentUser.email,
+                                latestMessageSender: firebase.auth().currentUser.nickname,
                                 latestMessageTimestamp: + new Date(),
                                 latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
-                                convoPartner: firebase.auth().currentUser.email,
+                                convoPartner: firebase.auth().currentUser.nickname,
                                 type: "text"
                             });
                         }
@@ -614,9 +653,9 @@ function saveMessage(msgText) {
 
             //GROUP CHATS
             else {
-                firebase.database().ref("chats/" + $("#contact-name").text()).update({
+                firebase.database().ref("chats/" + secondUserNickname).update({  //B.Š. - nickname is the group name in this case
                     latestMessage: + new Date(),
-                    latestMessageSender: firebase.auth().currentUser.email,
+                    latestMessageSender: firebase.auth().currentUser.nickname,
                     latestMessage: msgText,
                     // profilePic: firebase.auth().currentUser.profilePicUrl,   
                     profilePic: "https://cdn-images-1.medium.com/max/1200/1*MccriYX-ciBniUzRKAUsAw.png", //temp profilna za grupe
@@ -626,18 +665,18 @@ function saveMessage(msgText) {
 
                     firebase.database().ref("chats/" + $("#contact-name").text() + "/messages").push({
                         content: msgText,
-                        sender: firebase.auth().currentUser.email,
+                        sender: firebase.auth().currentUser.nickname,
                         type: "text",
                         profilePic: firebase.auth().currentUser.photoURL,
 
                     })
                 });
 
-                firebase.database().ref("groups/" + $("#contact-name").text()).update({
+                firebase.database().ref("groups/" + secondUserNickname).update({
                     latestMessageTimestamp: + new Date(),
-                    latestMessageSender: firebase.auth().currentUser.email,
+                    latestMessageSender: firebase.auth().currentUser.nickname,
                     latestMessage: msgText,
-                    profilePic: firebase.auth().currentUser.email,
+                    profilePic: firebase.auth().currentUser.photoURL,
                 });
 
 
@@ -645,9 +684,9 @@ function saveMessage(msgText) {
                 //TODO: napraviti Cloud Funkciju da svim clanovima grupe u latest stavi grupa/poruke
                 // staviti kao trigger kada se updatea grupa s najnovijim porukama ili kada dode poruka u grupu
 
-                firebase.database().ref("latest/" + $("#contact-name").text()).update({
+                firebase.database().ref("latest/" + secondUserNickname).update({
                     latestMessage: msgText,
-                    latestMessageSender: firebase.auth().currentUser.email,
+                    latestMessageSender: firebase.auth().currentUser.nickname,
                     latestMessageTimestamp: + new Date(),
                     latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
                     type: "text"
@@ -658,31 +697,34 @@ function saveMessage(msgText) {
     }
 }
 
-function saveImageMessage(file) {
 
-    firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).on("value", function (snapshot) {
+//ODAVDE NASTAVITI
+function saveImageMessage(file) {
+    var secondUserNickname = $("#contact-name").text();
+
+    firebase.database().ref("users").orderByKey().equalTo(secondUserNickname).on("value", function (snapshot) {
         if (snapshot.exists()) {
-            firebase.database().ref("users").orderByChild("email").equalTo($("#contact-name").text()).once("child_added", function (snapshot) {
-                var secondUserUid = snapshot.val().uid;
+            firebase.database().ref("users").orderByKey().equalTo(secondUserNickname).once("child_added", function (snapshot) {
+                //var secondUserUid = snapshot.val().uid;
                 firebase.database().ref("chats").once("value").then(function (snapshot) {
-                    if (snapshot.hasChild(firebase.auth().currentUser.uid + "_" + secondUserUid)) {
-                        firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid).update({
-                            participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
+                    if (snapshot.hasChild(firebase.auth().currentUser.nickname + "_" + secondUserNickname)) {
+                        firebase.database().ref("chats/" + firebase.auth().currentUser.nickname + "_" + secondUserNickname).update({
+                            participants: [firebase.auth().currentUser.nickname, secondUserNickname],
                             latestMessage: + new Date(),
                             message: "Image",
-                            sender: firebase.auth().currentUser.email,
+                            sender: firebase.auth().currentUser.nickname,
                             groupChat: false,
                             type: "image"
                         }).then(function () {
 
-                            firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid + "/messages").push({
+                            firebase.database().ref("chats/" + firebase.auth().currentUser.nickname + "_" + secondUserNickname + "/messages").push({
                                 type: "text",
                                 imageUrl: LOADING_IMAGE_URL,
-                                sender: firebase.auth().currentUser.email,
+                                sender: firebase.auth().currentUser.nickname,
                                 timestamp: + new Date(),
                                 profilePic: firebase.auth().currentUser.photoURL
                             }).then(function (messageRef) {
-                                var filePath = firebase.auth().currentUser.uid + '/' + messageRef.key + '/' + file.name;
+                                var filePath = firebase.auth().currentUser.nickname + '/' + messageRef.key + '/' + file.name;
                                 return firebase.storage().ref(filePath).put(file).then(function (fileSnapshot) {
                                     // Generate a public URL for the file.
                                     return fileSnapshot.ref.getDownloadURL().then((url) => {
@@ -691,20 +733,20 @@ function saveImageMessage(file) {
                                             imageUrl: url,
                                             storageUri: fileSnapshot.metadata.fullPath
                                         }).then(function () {
-                                            firebase.database().ref("latest/" + firebase.auth().currentUser.uid + "/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
+                                            firebase.database().ref("latest/" + firebase.auth().currentUser.nickname + "/" + firebase.auth().currentUser.nickname + "_" + secondUserNickname).set({
                                                 latestMessage: "",
-                                                latestMessageSender: firebase.auth().currentUser.email,
+                                                latestMessageSender: firebase.auth().currentUser.nickname,
                                                 latestMessageTimestamp: + new Date(),
                                                 latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
-                                                convoPartner: $("#contact-name").text(),
+                                                convoPartner: secondUserNickname,
                                                 type: "image"
                                             });
-                                            firebase.database().ref("latest/" + secondUserUid + "/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
+                                            firebase.database().ref("latest/" + secondUserNickname + "/" + firebase.auth().currentUser.nickname + "_" + secondUserNickname).set({
                                                 latestMessage: "",
-                                                latestMessageSender: firebase.auth().currentUser.email,
+                                                latestMessageSender: firebase.auth().currentUser.nickname,
                                                 latestMessageTimestamp: + new Date(),
                                                 latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
-                                                convoPartner: firebase.auth().currentUser.email,
+                                                convoPartner: firebase.auth().currentUser.nickname,
                                                 type: "image"
                                             });
                                         });
@@ -714,23 +756,23 @@ function saveImageMessage(file) {
                         });
 
                     }
-                    else if (snapshot.hasChild(secondUserUid + "_" + firebase.auth().currentUser.uid)) {
-                        firebase.database().ref("chats/" + secondUserUid + "_" + firebase.auth().currentUser.uid).update({
-                            participants: [$("#contact-name").text(), firebase.auth().currentUser.email],
+                    else if (snapshot.hasChild(secondUserNickname + "_" + firebase.auth().currentUser.nickname)) {
+                        firebase.database().ref("chats/" + secondUserNickname + "_" + firebase.auth().currentUser.nickname).update({
+                            participants: [secondUserNickname, firebase.auth().currentUser.nickname],
                             latestMessage: + new Date(),
                             message: "Image",
-                            sender: firebase.auth().currentUser.email,
+                            sender: firebase.auth().currentUser.nickname,
                             groupChat: false,
                             type: "image"
                         }).then(function () {
-                            firebase.database().ref("chats/" + secondUserUid + "_" + firebase.auth().currentUser.uid + "/messages").push({
+                            firebase.database().ref("chats/" + secondUserNickname + "_" + firebase.auth().currentUser.nickname + "/messages").push({
                                 type: "text",
                                 imageUrl: LOADING_IMAGE_URL,
-                                sender: firebase.auth().currentUser.email,
+                                sender: firebase.auth().currentUser.nickname,
                                 timestamp: + new Date(),
                                 profilePic: firebase.auth().currentUser.photoURL
                             }).then(function (messageRef) {
-                                var filePath = firebase.auth().currentUser.uid + '/' + messageRef.key + '/' + file.name;
+                                var filePath = firebase.auth().currentUser.nickname + '/' + messageRef.key + '/' + file.name;
                                 return firebase.storage().ref(filePath).put(file).then(function (fileSnapshot) {
                                     // Generate a public URL for the file.
                                     return fileSnapshot.ref.getDownloadURL().then((url) => {
@@ -739,20 +781,20 @@ function saveImageMessage(file) {
                                             imageUrl: url,
                                             storageUri: fileSnapshot.metadata.fullPath
                                         }).then(function () {
-                                            firebase.database().ref("latest/" + firebase.auth().currentUser.uid + "/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
+                                            firebase.database().ref("latest/" + firebase.auth().currentUser.nickname + "/" + firebase.auth().currentUser.nickname + "_" + secondUserNickname).set({
                                                 latestMessage: "",
-                                                latestMessageSender: firebase.auth().currentUser.email,
+                                                latestMessageSender: firebase.auth().currentUser.nickname,
                                                 latestMessageTimestamp: + new Date(),
                                                 latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
-                                                convoPartner: $("#contact-name").text(),
+                                                convoPartner: secondUserNickname,
                                                 type: "image"
                                             });
-                                            firebase.database().ref("latest/" + secondUserUid + "/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
+                                            firebase.database().ref("latest/" + secondUserNickname + "/" + firebase.auth().currentUser.nickname + "_" + secondUserNickname).set({
                                                 latestMessage: "",
-                                                latestMessageSender: firebase.auth().currentUser.email,
+                                                latestMessageSender: firebase.auth().currentUser.nickname,
                                                 latestMessageTimestamp: + new Date(),
                                                 latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
-                                                convoPartner: firebase.auth().currentUser.email,
+                                                convoPartner: firebase.auth().currentUser.nickname,
                                                 type: "image"
                                             });
                                         });
@@ -762,23 +804,23 @@ function saveImageMessage(file) {
                         });
                     }
                     else {
-                        firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
-                            participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
+                        firebase.database().ref("chats/" + firebase.auth().currentUser.nickname + "_" + secondUserNickname).set({
+                            participants: [firebase.auth().currentUser.nickname, secondUserNickname],
                             latestMessage: + new Date(),
                             message: "Image",
-                            sender: firebase.auth().currentUser.email,
+                            sender: firebase.auth().currentUser.nickname,
                             groupChat: false,
                             type: "image"
                         }).then(function () {
 
-                            firebase.database().ref("chats/" + firebase.auth().currentUser.uid + "_" + secondUserUid + "/messages").push({
+                            firebase.database().ref("chats/" + firebase.auth().currentUser.nickname + "_" + secondUserNickname + "/messages").push({
                                 type: "text",
                                 imageUrl: LOADING_IMAGE_URL,
-                                sender: firebase.auth().currentUser.email,
+                                sender: firebase.auth().currentUser.nickname,
                                 timestamp: + new Date(),
                                 profilePic: firebase.auth().currentUser.photoURL
                             }).then(function (messageRef) {
-                                var filePath = firebase.auth().currentUser.uid + '/' + messageRef.key + '/' + file.name;
+                                var filePath = firebase.auth().currentUser.nickname + '/' + messageRef.key + '/' + file.name;
                                 return firebase.storage().ref(filePath).put(file).then(function (fileSnapshot) {
                                     // Generate a public URL for the file.
                                     return fileSnapshot.ref.getDownloadURL().then((url) => {
@@ -787,20 +829,20 @@ function saveImageMessage(file) {
                                             imageUrl: url,
                                             storageUri: fileSnapshot.metadata.fullPath
                                         }).then(function () {
-                                            firebase.database().ref("latest/" + firebase.auth().currentUser.uid + "/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
+                                            firebase.database().ref("latest/" + firebase.auth().currentUser.nickname + "/" + firebase.auth().currentUser.nickname + "_" + secondUserNickname).set({
                                                 latestMessage: "",
-                                                latestMessageSender: firebase.auth().currentUser.email,
+                                                latestMessageSender: firebase.auth().currentUser.nickname,
                                                 latestMessageTimestamp: + new Date(),
                                                 latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
-                                                convoPartner: $("#contact-name").text(),
+                                                convoPartner: secondUserNickname,
                                                 type: "image"
                                             });
-                                            firebase.database().ref("latest/" + secondUserUid + "/" + firebase.auth().currentUser.uid + "_" + secondUserUid).set({
+                                            firebase.database().ref("latest/" + secondUserNickname + "/" + firebase.auth().currentUser.nickname + "_" + secondUserNickname).set({
                                                 latestMessage: "",
-                                                latestMessageSender: firebase.auth().currentUser.email,
+                                                latestMessageSender: firebase.auth().currentUser.nickname,
                                                 latestMessageTimestamp: + new Date(),
                                                 latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
-                                                convoPartner: firebase.auth().currentUser.email,
+                                                convoPartner: firebase.auth().currentUser.nickname,
                                                 type: "image"
                                             });
                                         });
@@ -814,23 +856,23 @@ function saveImageMessage(file) {
         }
 
         else {
-            firebase.database().ref("chats/" + $("#contact-name").text()).update({
-                participants: [firebase.auth().currentUser.email, $("#contact-name").text()],
+            firebase.database().ref("chats/" + secondUserNickname).update({
+                participants: [firebase.auth().currentUser.nickname, secondUserNickname],
                 latestMessage: + new Date(),
                 message: "Image",
-                sender: firebase.auth().currentUser.email,
+                sender: firebase.auth().currentUser.nickname,
                 groupChat: true,
                 type: "image"
             }).then(function () {
 
-                firebase.database().ref("chats/" + $("#contact-name").text() + "/messages").push({
+                firebase.database().ref("chats/" + secondUserNickname + "/messages").push({
                     type: "text",
                     imageUrl: LOADING_IMAGE_URL,
-                    sender: firebase.auth().currentUser.email,
+                    sender: firebase.auth().currentUser.nickname,
                     timestamp: + new Date(),
                     profilePic: firebase.auth().currentUser.photoURL
                 }).then(function (messageRef) {
-                    var filePath = firebase.auth().currentUser.uid + '/' + messageRef.key + '/' + file.name;
+                    var filePath = firebase.auth().currentUser.nickname + '/' + messageRef.key + '/' + file.name;
                     return firebase.storage().ref(filePath).put(file).then(function (fileSnapshot) {
                         // Generate a public URL for the file.
                         return fileSnapshot.ref.getDownloadURL().then((url) => {
@@ -841,7 +883,7 @@ function saveImageMessage(file) {
                             }).then(function () {
                                 firebase.database().ref("latest/" + $("#contact-name").text()).update({
                                     latestMessage: "",
-                                    latestMessageSender: firebase.auth().currentUser.email,
+                                    latestMessageSender: firebase.auth().currentUser.nickname,
                                     latestMessageTimestamp: + new Date(),
                                     latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
                                     type: "image"
@@ -873,68 +915,72 @@ function sortContacts(array) {
     return array;
 }
 
-function searchUsers(searchString, type){
+function searchUsers(searchString, type) {
     $("#search-result").empty();
-    
-    if(type == "contact"){
-        if(searchString != ""){
+
+    if (type == "contact") {
+        if (searchString != "") {
             firebase.database().ref("users/").orderByChild("nickname").startAt(searchString).endAt(searchString + "\uf8ff").once("value", function (snap) {
                 if (snap.exists()) {
                     snap.forEach(function (data) {
-                        $("#search-result").append("<option value='"+data.val().nickname+"'></option>")
-                        
-                    });     
-                            
+                        $("#search-result").append("<option value='" + data.val().nickname + "'></option>")
+
+                    });
+
                 }
             });
         }
     }
-    else if(type == "group"){
-        if(searchString != ""){
+    else if (type == "group") {
+        if (searchString != "") {
             firebase.database().ref("users/").orderByChild("nickname").startAt(searchString).endAt(searchString + "\uf8ff").once("value", function (snap) {
                 if (snap.exists()) {
                     $("#group-user-search").empty();
                     snap.forEach(function (data) {
-                        $("#group-user-search").append("<option value='"+data.val().nickname+"'></option>")
+                        $("#group-user-search").append("<option value='" + data.val().nickname + "'></option>")
                         //console.log(data.val().nickname);
-                    });     
+                    });
                     //console.log("----------------------------------");            
                 }
             });
         }
     }
-    
+
 }
 
 //B.Š. - search users for starting a chat with a single user
-$("#user-search").bind("keyup", function(event){
-    if(event.which == 13 && $("#search-result option").length == 1){
+$("#user-search").bind("keyup", function (event) {
+    if (event.which == 13 && $("#search-result option").length == 1) {
         //$("#search-result option").val(); nesto...
-        console.log($("#search-result option").val());
-        createNewIndividualChat($("#search-result option").val())
+        //console.log($("#search-result option").val());
+        createNewIndividualChat($("#search-result option").val());
     }
     $("#search-result").empty();
     searchUsers($(this).val(), "contact");
 });
 
-$("#search-result option").bind("click", function(event){
-    createNewIndividualChat($(this).val());
+$("#search-result option").bind("click", function (event) {
+    createNewIndividualChat($(this).val()).then(function(){
+        initGroupsList().then(function(){
+            initContactsList();  //TODO: vjerojatno treba prebrikati da se ne bi kontakti 2x ucitvali nakon zapocinjanja novog razgovora
+        });
+    });
 });
 
 
 /*
-B.Š. - search users for adding to list of participants in group chat yet to be created, used in group
+B.Š. - search users for adding to list of participants in group chat currently being created, used in group
        chat creation modal window
 
 Doesn't work if 'modal shown' event listener is assigned before window/page content is fully loaded
 */
-window.onload = function(){
-    $("#group-create-modal").on("shown.bs.modal",function(e){
+window.onload = function () {
+    $("#group-create-modal").on("shown.bs.modal", function (e) {
         $("#group-member-input").val("");
         $("#group-user-list").val("");
         //$("#group-user-search").empty();
-        $("#group-member-input").bind("keyup", function(event){
-            if(event.which==13 && $("#group-user-search option").length == 1){
+        $("#group-member-input").bind("keyup", function (event) {
+            if (event.which == 13 && $("#group-user-search option").length == 1) {
                 addToCreateGroupChatModalUserList($("#group-user-search option").val());
             }
             //$("#group-user-search").empty();
@@ -942,14 +988,14 @@ window.onload = function(){
             $("#group-user-search").empty();
             searchUsers($("#group-member-input").val(), "group");
         });
-        $("#group-user-search option").click(function(){
+        $("#group-user-search option").click(function () {
             console.log($(this.val()));
         });
     });
 
 
 
-    $("form").submit(function(event){
+    $("form").submit(function (event) {
         event.preventDefault();
     });
 };
@@ -957,49 +1003,49 @@ window.onload = function(){
 
 
 
-function saveUsername(){
+function saveUsername() {
     $("#username-error").attr("hidden", true);
-    if($("#username-input").val() != ""){
+    if ($("#username-input").val() != "") {
         //console.log($("#username-input").val());
-        var regex = new RegExp('^[a-zA-Z0-9_-]*$');
-        if(regex.test($("#username-input").val())){
-            firebase.database().ref("users/").orderByChild("nickname").equalTo($("#username-input").val()).once("value").then(function(snap){
-                if(!snap.val()){
+        var regex = new RegExp('^[a-zA-Z0-9_-]*$');  //B.Š. - username can only contain alphanumeric characters, dashes and underscores
+        if (regex.test($("#username-input").val())) {
+            firebase.database().ref("users/").orderByChild("nickname").equalTo($("#username-input").val()).once("value").then(function (snap) {
+                if (!snap.val()) {
                     firebase.auth().currentUser.nickname = $("#username-input").val();
-                    firebase.database().ref("users/"+firebase.auth().currentUser.nickname).set({
+                    firebase.database().ref("users/" + firebase.auth().currentUser.nickname).set({
                         email: firebase.auth().currentUser.email,
                         name: firebase.auth().currentUser.displayName,
                         profilePic: firebase.auth().currentUser.photoURL,
                         uid: firebase.auth().currentUser.uid,
                         nickname: $("#username-input").val()
                     });
-                    firebase.database().ref("users_reg/"+firebase.auth().currentUser.uid).set({
+                    firebase.database().ref("users_reg/" + firebase.auth().currentUser.uid).set({
                         email: firebase.auth().currentUser.email,
                         name: firebase.auth().currentUser.displayName,
                         profilePic: firebase.auth().currentUser.photoURL,
                         uid: firebase.auth().currentUser.uid,
                         nickname: $("#username-input").val()
                     });
-                    
+
                     $("#username-modal").modal("hide");
                     $("#username-input").val("");
                     $("#username-error").attr("hidden", true);
                 }
-                else{
+                else {
                     $("#username-error").attr("hidden", false);
                     $("#username-error").text('Username already taken!');
-                    
+
                 }
             });
         }
-        else{
+        else {
             $("#username-error").attr("hidden", false);
             $("#username-error").text("Invalid username!  ");
             $("#username-error").append('<i data-toggle="tooltip" class="fas fa-info-circle">Username conditions</i>');
         }
-        
+
     }
-    else{
+    else {
         $("#username-error").text("Username must not be empty");
     }
 
@@ -1009,104 +1055,109 @@ $(function () {
     $('[data-toggle="tooltip"]').tooltip()
 });
 
-$(document).keypress(function(event){
-    if(event.which== 13 && ($("#username-modal").data('bs.modal') || {})._isShown){  //if #username-modal Bootstrap modal element is currently shown
+$(document).keypress(function (event) {
+    if (event.which == 13 && ($("#username-modal").data('bs.modal') || {})._isShown) {  //if #username-modal Bootstrap modal element is currently shown
         saveUsername();
     }
 });
 
 //B.Š. - adds users to list of selected users in modal window for creating group chats
-function addToCreateGroupChatModalUserList(nickname){
+function addToCreateGroupChatModalUserList(nickname) {
     let usrArray = [];
     usrArray = $("#group-user-list").val().split('|||');
-    if(usrArray.indexOf(nickname)==-1){
+    if (usrArray.indexOf(nickname) == -1) {
         usrArray.push(nickname);
         $("#group-user-list").val(usrArray.join('|||'));
     }
-    
-    
+
+
     renderGroupUsersList();
 }
 
-function deleteFromCreateModalUserList(nickname){
+function deleteFromCreateModalUserList(nickname) {
+    console.log(nickname);
     let usrArray = $("#group-user-list").val().split('|||');
-    if(usrArray.indexOf(nickname) > -1){
+    if (usrArray.indexOf(nickname) > -1) {
         usrArray.splice(usrArray.indexOf(nickname), 1);
     }
 
     $("#group-user-list").val(usrArray.join('|||'));
-    
+
     renderGroupUsersList();
 }
 
 
-function renderGroupUsersList(){
+function renderGroupUsersList() {
     $("#ul-user-list").empty();
     let usrArray = $("#group-user-list").val().split('|||');
-    for(var i = 0; i<usrArray.length; i++){
-        if(usrArray[i] != ""){
-            let listItem = "<li class='list-group-item'><div class='row'><div class='col-xs-2'><a href='#' class='mr-2' onclick='deleteFromCreateModalUserList(&quot;"+usrArray[i]+"&quot;)'><i class='fas fa-times'></i></a></i></div><div class='col-xs-10'><p class='pb-1'>"+usrArray[i]+"</p></div></div></li>";
+    for (var i = 0; i < usrArray.length; i++) {
+        if (usrArray[i] != "") {
+            //let listItem = "<li class='list-group-item'><div class='row'><div class='col-xs-2'><a href='#' class='mr-2' onclick='deleteFromCreateModalUserList(&quot;"+usrArray[i]+"&quot;)'><i class='fas fa-times'></i></a></i></div><div class='col-xs-10'><p class='pb-1'>"+usrArray[i]+"</p></div></div></li>";
+            let listItem = `<li class='list-group-item'><div class='row'><div class='col-xs-2'><a href='#' class='mr-2' onclick='deleteFromCreateModalUserList("${usrArray[i]}")'><i class='fas fa-times'></i></a></i></div><div class='col-xs-10'><p class='pb-1'>${usrArray[i]}</p></div></div></li>`;
             $("#ul-user-list").append(listItem);
         }
-        
+
     }
 }
 
-function createGroupChat(){
+function createGroupChat() {
     $("#group-error").prop("hidden", true);
-    if(confirm("Are you sure?")){
-        if($("#ul-user-list li").length>=1 && $("#group-name").val()!= ""){
+    if (confirm("Are you sure?")) {
+        if ($("#ul-user-list li").length >= 1 && $("#group-name").val() != "") {
             var users = [];
-            $("#ul-user-list li").each(function(){
+            $("#ul-user-list li").each(function () {
                 users.push($(this).text());
             });
             var regex = new RegExp('^[a-zA-Z0-9_ -]*$');
-            if(regex.test($("#group-name").val())){
-                firebase.database().ref("groups/").once("value",function(snapshot){
-                    if(snapshot.hasChild($("#group-name").val())){
-                        $("#group-error").prop("hidden", true);
+            if (regex.test($("#group-name").val())) {
+                firebase.database().ref("groups/").once("value", function (snapshot) {
+                    if (snapshot.hasChild($("#group-name").val())) {
+                        $("#group-error").prop("hidden", false);
                         $("#group-error").text("Groupp name already used!");
                     }
-                    else{
+                    else {
                         //TODO: UPLOAD PROFILNE SLIKE ZA GRUPU
-                        firebase.database().ref("groups/"+$("#group-name").val()).set({
+                        firebase.database().ref("groups/" + $("#group-name").val()).set({
                             displayName: $("#group-name").val(),
                             latestMessage: "",
                             latestMessageSender: "",
                             profilePic: "",
                             latestMessageTimestamp: + new Date(),
                             participants: users
-                        }).then(function(){
+                        }).then(function () {
+                            $("#group-error").prop("hidden", true);
                             $('#group-create-modal').modal('hide');
-                        });
+                        }).then(initGroupsList().then(initContactsList()));
                     }
                 });
             }
-            else{
-                $("#group-error").prop("hidden", true);
+            else {
+                $("#group-error").prop("hidden", false);
                 $("#group-error").text("Invalid group name!");
             }
-            
+
         }
-        else{
-            $("#group-error").prop("hidden", true);
+        else {
+            $("#group-error").prop("hidden", false);
             $("#group-error").text("At least one user is needed!");
         }
-        
+
     }
 }
 
-function createNewIndividualChat(nickname){
-    firebase.database.ref("chats/").once("value",function(snapshot){
-        if(snapshot.hasChild(nickname+"_"+firebase.auth().currentUser.nickname) || snapshot.hasChild(firebase.auth().currentUser.nickname + "_"+nickname)){
+async function createNewIndividualChat(nickname) {
+
+    firebase.database().ref("chats/").once("value", function (snapshot) {
+        if (snapshot.hasChild(nickname + "_" + firebase.auth().currentUser.nickname) || snapshot.hasChild(firebase.auth().currentUser.nickname + "_" + nickname)) {
             alert("User already added to conversation list!");
         }
-        else{
-            firebase.database().ref("chats/" + firebase.auth().currentUser.nickname + "_"+nickname).set({
+        else {
+            console.log(nickname);
+            firebase.database().ref("chats/" + firebase.auth().currentUser.nickname + "_" + nickname).set({
                 groupChat: true,
                 latestMessage: + new Date(),
                 latestMessageSender: firebase.auth().currentUser.nickname,
-                message: null,
+                message: "",
                 messages: [],
                 participants: [firebase.auth().currentUser.nickname, nickname],
                 sender: firebase.auth().currentUser.nickname,
@@ -1114,12 +1165,47 @@ function createNewIndividualChat(nickname){
             })
         }
     });
+    
+    firebase.database().ref(`latest/${firebase.auth().currentUser.nickname}/${firebase.auth().currentUser.nickname}_${nickname}`).set({
+        convoPartner: nickname,
+        latestMessage: `You started a chat with ${nickname}.`,
+        latestMessageSender: firebase.auth().currentUser.nickname,
+        latestMessageTimestamp: + new Date(),
+        latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
+        type: "text"
+    });
+    firebase.database().ref(`latest/${nickname}/${firebase.auth().currentUser.nickname}_${nickname}`).set({
+        convoPartner: firebase.auth().currentUser.nickname,
+        latestMessage: `${firebase.auth().currentUser.nickname} wants to talk start a chat`,
+        latestMessageSender: firebase.auth().currentUser.nickname,
+        latestMessageTimestamp: + new Date(),
+        latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
+        type: "text"
+    });
+
 }
+
+function showSnackbar(messageStr) {
+    messageSnackbarElement.className = "show";
+    messageSnackbarElement.innerHTML = messageStr;
+    setTimeout(() => {
+        messageSnackbarElement.className = messageSnackbarElement.className.replace("show", "");
+    }, 3000);
+}
+
+function initMainEventListeners(){
+    //firebase.database().ref(`latest/${firebase.auth().currentUser.nickname}`).on("child_changed", initContactsList);
+    firebase.database().ref(`latest/${firebase.auth().currentUser.nickname}`).on("child_added", initContactsList);
+}
+
+
 
 //TESTING AN' SHIT
 
 function test(searchString) {
-    firebase.database().ref("chats/").once("value",function(snapshot){
+    firebase.database().ref("chats/").once("value", function (snapshot) {
         console.log(snapshot.hasChild(searchString));
     });
 }
+
+
