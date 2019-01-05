@@ -192,8 +192,16 @@ async function authStateObserver(user) {
             }
         }).then(function(){
             initGroupsList().then(function () {
-                //initContactsList();
                 initMainEventListeners();
+                initContactsList();
+
+                
+                $(".contact").click(function () {
+                    console.log("kontakt kliknut");
+                    $("#contact-name").removeAttr("hidden");
+                    $("#contact-name").text($(this).find("b:first").text());
+                    loadMessages();
+                });
             });
             
         });
@@ -220,9 +228,6 @@ async function authStateObserver(user) {
         $("#main").show()
         // We save the Firebase Messaging Device token and enable notifications.
         //saveMessagingDeviceToken();
-
-        // firebase.database().ref(`latest/${firebase.auth().currentUser.nickname}`).on("child_changed", initContactsList());
-        // firebase.databse().ref(`latest/${firebase.auth().currentUser.nickname}`).on("child_added", initContactsList());
 
     }
 
@@ -403,20 +408,23 @@ function snapshotToArray(snapshot) {
 async function initGroupsList() {
     return firebase.database().ref("groups").on("value", function (snap) {
         groups = [];  //Potrebno, jer ce se u suprotnom grupe dvaput ucitati u listu kontakata
-        snap.forEach((a) => {
-            a.val().participants.forEach((p) => {
-                if (p == firebase.auth().currentUser.email) {
-                    groups.push(a.val());
-                }
+        if(snap.exists()){
+            snap.forEach((a) => {
+                a.val().participants.forEach((p) => {
+                    if (p == firebase.auth().currentUser.nickname) {
+                        groups.push(a.val());
+                    }
+                });
             });
-        });
+        }
     });
 }
 
 
 function initContactsList() {
-
+    //console.log("Inicijalizacija kontakata");
     var contacts = [];
+    contactsListElement.innerHTML = "";
 
 
     firebase.database().ref("latest/" + firebase.auth().currentUser.nickname).orderByChild("latestMessageTimestamp").once("value", function (snap) {
@@ -426,55 +434,78 @@ function initContactsList() {
             contacts.push(childSnap.val());
         });
 
-        if(groups.length>0){
-            groups.forEach(function (group) {
-                var temp = group;
-                temp.convoPartner = group.displayName;
-                //delete temp.displayName;
-                contacts.push(temp);
-    
-            });
-        }
+        groups.forEach(function (group) {
+            var temp = group;
+            temp.convoPartner = group.displayName;
+            //delete temp.displayName;
+            contacts.push(temp);
 
+        });
+
+        //console.log(groups);
         
         //console.log(contacts);
     }).then(function () {
         
         contacts = sortContacts(contacts);
-        
+        console.log(contacts);
         
         contactsListElement.innerHTML = "";
         for (let i = 0; i < contacts.length; i++) {
-            console.log(i);
-            firebase.database().ref("users/" + contacts[i].convoPartner).once("value", function (snapshot) {
-                console.log(snapshot.val().profilePic);
-                
-                console.log(contacts[i]["convoPartner"]);
-                //var contactsToAdd = "<div class='col-sm-3'><img src =" + snapshot.val().profilePic + " /></div><div class = 'col-sm-9'<p><b>" + contacts[i].convoPartner + "</b></p><p>" + contacts[i].latestMessage + "</p></div>";
-                var contactsToAdd = `<div class='col-sm-3'><img src= ${snapshot.val().profilePic}  /></div><div class = 'col-sm-9'<p><b> ${contacts[i]["convoPartner"]}</b></p><p> ${contacts[i]["latestMessage"]}</p></div>`;
-                var contactDiv = document.createElement("div");
-                contactDiv.className = "contact row"
-                contactDiv.innerHTML = contactsToAdd;
-                document.getElementById("contacts").appendChild(contactDiv);
-            });
+            if("participants" in contacts[i]){
+                firebase.database().ref(`groups/${contacts[i]["convoPartner"]}/profilePic`).once("value", function(snapshot){
+                    var contactsToAdd = `<div class='col-sm-3'><img src= ${snapshot.val()}  /></div><div class = 'col-sm-9'<p><b> ${contacts[i]["convoPartner"]}</b></p><p> ${contacts[i]["latestMessage"]}</p></div>`;
+                    var contactDiv = document.createElement("div");
+                    contactDiv.className = "contact row"
+                    contactDiv.innerHTML = contactsToAdd;
+                    document.getElementById("contacts").appendChild(contactDiv);
+
+                    $(".contact").off();
+                    $(".contact").on("click", function () {
+                        $("#contact-name").removeAttr("hidden");
+                        $("#contact-name").text($(this).find("b:first").text());
+                        loadMessages();
+                    });
+
+                });
+            }
+            
+            else{
+                firebase.database().ref("users/" + contacts[i]["convoPartner"] + "/profilePic").once("value").then(function (snapshot) {                
+                    //console.log(contacts[i]["convoPartner"]);
+                    //var contactsToAdd = "<div class='col-sm-3'><img src =" + snapshot.val().profilePic + " /></div><div class = 'col-sm-9'<p><b>" + contacts[i].convoPartner + "</b></p><p>" + contacts[i].latestMessage + "</p></div>";
+                    var contactsToAdd = `<div class='col-sm-3'><img src= ${snapshot.val()}  /></div><div class = 'col-sm-9'<p><b> ${contacts[i]["convoPartner"]}</b></p><p> ${contacts[i]["latestMessage"]}</p></div>`;
+                    var contactDiv = document.createElement("div");
+                    contactDiv.className = "contact row"
+                    contactDiv.innerHTML = contactsToAdd;
+                    document.getElementById("contacts").appendChild(contactDiv);
+                    
+                    //B.Š. - events need to be assigned inside the database callback function, otherwise they're assigned before the DB call is finished.
+                    $(".contact").off();
+                    $(".contact").on("click", function () {
+                        $("#contact-name").removeAttr("hidden");
+                        $("#contact-name").text($(this).find("b:first").text());
+                        loadMessages();
+                    });
+    
+                });
+            }
+            
             //wat
             //var contactsToAdd = "<p><b>" + contacts[i].convoPartner + "</b></p><p>" + contacts[i].latestMessage + "</p>"; //the fuck is this
+            
+        }   
 
-        }
+        
+      
+        
 
-        // $(".contact").click(function () {
-        //     $("#contact-name").removeAttr("hidden");
-        //     $("#contact-name").text($(this).find("b:first").text());
-        //     loadMessages();
-        // });
-        $(".contact").on("click", function () {
-            $("#contact-name").removeAttr("hidden");
-            $("#contact-name").text($(this).find("b:first").text());
-            loadMessages();
-        });
+        
+    }).then(function(){
+
+        
+
     });
-    //firebase.database().ref(`latest/${firebase.auth().currentUser.nickname}`).on("child_changed", initGroupsList().then(initContactsList()));
-    // firebase.databse().ref(`latest/${firebase.auth().currentUser.nickname}`).on("child_added", initGroupsList().then(initContactsList()));
 }
 
 // Loads chat messages history and listens for upcoming ones.
@@ -1116,8 +1147,9 @@ function createGroupChat() {
                         $("#group-error").text("Groupp name already used!");
                     }
                     else {
+                        var groupName = $("#group-name").val()
                         //TODO: UPLOAD PROFILNE SLIKE ZA GRUPU
-                        firebase.database().ref("groups/" + $("#group-name").val()).set({
+                        firebase.database().ref(`groups/${groupName}`).set({
                             displayName: $("#group-name").val(),
                             latestMessage: "",
                             latestMessageSender: "",
@@ -1127,7 +1159,23 @@ function createGroupChat() {
                         }).then(function () {
                             $("#group-error").prop("hidden", true);
                             $('#group-create-modal').modal('hide');
-                        }).then(initGroupsList().then(initContactsList()));
+                            initGroupsList().then(function(){
+                                initContactsList();
+                            });
+                        });
+
+                        firebase.database().ref(`latest/${groupName}`).set({
+                            convoPartner: groupName,
+                            latestMessage: `${firebase.auth().currentUser.nickname} added you to ${groupName}`,
+                            latestMessageTimestamp: + new Date(),
+                            latestMessageSender: firebase.auth().currentUser.nickname,
+                            profilePic: "http://lorempixel.com/output/abstract-q-g-300-300-8.jpg",
+                            groupChat: true,
+                            type: "alert"
+                        });
+                        firebase.database().ref(`latest/${groupName}`).update({
+                            latestMessageTimestamp: + new Date(),
+                        });
                     }
                 });
             }
@@ -1149,12 +1197,13 @@ async function createNewIndividualChat(nickname) {
 
     firebase.database().ref("chats/").once("value", function (snapshot) {
         if (snapshot.hasChild(nickname + "_" + firebase.auth().currentUser.nickname) || snapshot.hasChild(firebase.auth().currentUser.nickname + "_" + nickname)) {
-            alert("User already added to conversation list!");
+            //alert("User already added to conversation list!");
+            showSnackbar("User already added to conversation list!");
         }
         else {
             console.log(nickname);
             firebase.database().ref("chats/" + firebase.auth().currentUser.nickname + "_" + nickname).set({
-                groupChat: true,
+                groupChat: false,
                 latestMessage: + new Date(),
                 latestMessageSender: firebase.auth().currentUser.nickname,
                 message: "",
@@ -1176,11 +1225,21 @@ async function createNewIndividualChat(nickname) {
     });
     firebase.database().ref(`latest/${nickname}/${firebase.auth().currentUser.nickname}_${nickname}`).set({
         convoPartner: firebase.auth().currentUser.nickname,
-        latestMessage: `${firebase.auth().currentUser.nickname} wants to talk start a chat`,
+        latestMessage: `${firebase.auth().currentUser.nickname} wants to talk.`,
         latestMessageSender: firebase.auth().currentUser.nickname,
         latestMessageTimestamp: + new Date(),
         latestMessageSenderProfilePic: firebase.auth().currentUser.photoURL,
         type: "text"
+    });
+
+
+    //B.Š. - used to trigger "child_changed" event listener on the latest messages node, and reinitialize the contacts list
+
+    firebase.database().ref(`latest/${firebase.auth().currentUser.nickname}/${firebase.auth().currentUser.nickname}_${nickname}`).update({
+        latestMessageTimestamp: + new Date()
+    });
+    firebase.database().ref(`latest/${nickname}/${firebase.auth().currentUser.nickname}_${nickname}`).update({
+        latestMessageTimestamp: + new Date()
     });
 
 }
@@ -1194,17 +1253,22 @@ function showSnackbar(messageStr) {
 }
 
 function initMainEventListeners(){
-    //firebase.database().ref(`latest/${firebase.auth().currentUser.nickname}`).on("child_changed", initContactsList);
-    firebase.database().ref(`latest/${firebase.auth().currentUser.nickname}`).on("child_added", initContactsList);
+    firebase.database().ref(`latest/${firebase.auth().currentUser.nickname}`).on("child_changed", function(){
+        initGroupsList().then(function(){
+            initContactsList();
+        })
+    });
 }
 
 
 
 //TESTING AN' SHIT
 
-function test(searchString) {
-    firebase.database().ref("chats/").once("value", function (snapshot) {
-        console.log(snapshot.hasChild(searchString));
+function test() {
+    firebase.database().ref("groups").on("value", function (snap) {
+        snap.forEach(function(snap2){
+            console.log(snap2.val());
+        });
     });
 }
 
