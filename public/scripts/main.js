@@ -513,6 +513,8 @@ function loadMessages() {
 
     messageListElement.innerHTML = '<span id="message-filler"></span>';
 
+    var secondUserNickname = $("#contact-name").text();
+
     //B.Š. - callback function called every time message data is modified and returned from DB 
     var msgCallback = function (snap) {
         var data = snap.val();
@@ -521,11 +523,11 @@ function loadMessages() {
         displayMessage(snap.key, data.sender, data.content, data.timestamp, data.profilePic, data.imageUrl);
     };
 
-    firebase.database().ref("users").orderByKey().equalTo($("#contact-name").text()).on("value", function (snapshot) {
+    firebase.database().ref(`users/${secondUserNickname}`).on("value", function (snapshot) {
         if (snapshot.exists()) {
 
-            firebase.database().ref("users").orderByKey().equalTo($("#contact-name").text()).on("child_added", function (snapshot) {
-                var secondUserNickname = $("#contact-name").text();
+            firebase.database().ref(`users/${secondUserNickname}`).on("child_added", function (snapshot) {
+                //var secondUserNickname = $("#contact-name").text();
                 firebase.database().ref("chats").once("value").then(function (snapshot) {
                     if (snapshot.hasChild(firebase.auth().currentUser.nickname + "_" + secondUserNickname)) {
                         firebase.database().ref("chats/" + firebase.auth().currentUser.nickname + "_" + secondUserNickname + "/messages").on("child_added", msgCallback);
@@ -548,8 +550,8 @@ function loadMessages() {
 }
 
 function saveMessage(msgText) {
-    var secondUserNickname = $("#contact-name").text();
-    if (secondUserNickname == "") {
+    
+    if ($("#contact-name").text() == "") {
         // var data = {
         //     message: "Please select a contact first",
         //     timeout: 2000
@@ -560,11 +562,12 @@ function saveMessage(msgText) {
     }
 
     else {
-        firebase.database().ref("users").orderByKey().equalTo(secondUserNickname).on("value", function (snapshot) {
-
+        firebase.database().ref(`users/`).on("value", function (snapshot) {
+            let secondUserNickname = $("#contact-name").text();
             //INDIVIDUAL CHATS
-            if (snapshot.exists()) {
-                firebase.database().ref("users").orderByKey().equalTo(secondUserNickname).once("child_added", function () {
+            if (snapshot.hasChild(secondUserNickname)) {
+                console.log(true);
+                firebase.database().ref(`users/${secondUserNickname}`).once("child_added", function () {
 
                     firebase.database().ref("chats").once("value").then(function (snapshot) {
                         //  B.Š. - check if conversations already exist, if not, create a new convo. 
@@ -684,8 +687,9 @@ function saveMessage(msgText) {
 
             //GROUP CHATS
             else {
+                console.log(false);
                 firebase.database().ref("chats/" + secondUserNickname).update({  //B.Š. - nickname is the group name in this case
-                    latestMessage: + new Date(),
+                    latestMessageTimestamp: + new Date(),
                     latestMessageSender: firebase.auth().currentUser.nickname,
                     latestMessage: msgText,
                     // profilePic: firebase.auth().currentUser.profilePicUrl,   
@@ -694,7 +698,7 @@ function saveMessage(msgText) {
                     resetMaterialTextfield(messageInputElement);
                     toggleButton();
 
-                    firebase.database().ref("chats/" + $("#contact-name").text() + "/messages").push({
+                    firebase.database().ref(`chats/${secondUserNickname}/messages`).push({
                         content: msgText,
                         sender: firebase.auth().currentUser.nickname,
                         type: "text",
@@ -733,9 +737,9 @@ function saveMessage(msgText) {
 function saveImageMessage(file) {
     var secondUserNickname = $("#contact-name").text();
 
-    firebase.database().ref("users").orderByKey().equalTo(secondUserNickname).on("value", function (snapshot) {
+    firebase.database().ref(`users/${secondUserNickname}`).on("value", function (snapshot) {
         if (snapshot.exists()) {
-            firebase.database().ref("users").orderByKey().equalTo(secondUserNickname).once("child_added", function (snapshot) {
+            firebase.database().ref(`users/${secondUserNickname}`).once("child_added", function (snapshot) {
                 //var secondUserUid = snapshot.val().uid;
                 firebase.database().ref("chats").once("value").then(function (snapshot) {
                     if (snapshot.hasChild(firebase.auth().currentUser.nickname + "_" + secondUserNickname)) {
@@ -896,7 +900,7 @@ function saveImageMessage(file) {
                 type: "image"
             }).then(function () {
 
-                firebase.database().ref("chats/" + secondUserNickname + "/messages").push({
+                firebase.database().ref(`chats/${secondUserNickname}/messages`).push({
                     type: "text",
                     imageUrl: LOADING_IMAGE_URL,
                     sender: firebase.auth().currentUser.nickname,
@@ -912,7 +916,7 @@ function saveImageMessage(file) {
                                 imageUrl: url,
                                 storageUri: fileSnapshot.metadata.fullPath
                             }).then(function () {
-                                firebase.database().ref("latest/" + $("#contact-name").text()).update({
+                                firebase.database().ref("latest/" + secondUserNickname).update({
                                     latestMessage: "",
                                     latestMessageSender: firebase.auth().currentUser.nickname,
                                     latestMessageTimestamp: + new Date(),
